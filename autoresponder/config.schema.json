@@ -2,39 +2,49 @@
   "version": 1,
   "file": "profile.json",
   "note": "Настройки читаются при запуске: изменения применятся после перезапуска скрипта. Команда .reload сбрасывает только счётчики лимитов.",
+  "note_en": "Settings are read at startup: changes apply after the script is restarted. The .reload command only resets the rate-limit counters.",
   "fields": [
     {
-      "section": "Профиль"
+      "section": "Профиль",
+      "section_en": "Profile"
     },
     {
       "key": "name",
       "title": "Имя владельца",
+      "title_en": "Owner name",
       "type": "string",
       "default": "v1pach",
-      "description": "Так модель называет тебя."
+      "description": "Так модель называет тебя.",
+      "description_en": "How the model addresses you."
     },
     {
       "key": "folder",
       "title": "Папка Telegram",
+      "title_en": "Telegram folder",
       "type": "string",
       "default": "Переписки",
-      "description": "Отвечать только в личных чатах из этой папки. Пусто: во всех личных чатах."
+      "description": "Отвечать только в личных чатах из этой папки. Пусто: во всех личных чатах.",
+      "description_en": "Reply only in private chats from this folder. Empty: in all private chats."
     },
     {
       "key": "voice_replies",
       "title": "Ответы на голосовые",
+      "title_en": "Voice message replies",
       "type": "list",
       "default": [
         "опять гс"
       ],
-      "description": "Для голосовых и видеосообщений выбирается случайная фраза."
+      "description": "Для голосовых и видеосообщений выбирается случайная фраза.",
+      "description_en": "A random phrase is chosen for voice and video messages."
     },
     {
-      "section": "Лимиты ответов модели"
+      "section": "Лимиты ответов модели",
+      "section_en": "Model reply limits"
     },
     {
       "key": "chat_limit",
       "title": "В час на один чат",
+      "title_en": "Per hour per chat",
       "type": "int",
       "default": 20,
       "description": "",
@@ -44,6 +54,7 @@
     {
       "key": "global_limit",
       "title": "В час на все чаты",
+      "title_en": "Per hour, all chats",
       "type": "int",
       "default": 60,
       "description": "",
@@ -53,6 +64,7 @@
     {
       "key": "day_limit",
       "title": "В сутки на все чаты",
+      "title_en": "Per day, all chats",
       "type": "int",
       "default": 300,
       "description": "",
@@ -60,11 +72,13 @@
       "max": 100000
     },
     {
-      "section": "Контекст"
+      "section": "Контекст",
+      "section_en": "Context"
     },
     {
       "key": "history_keep",
       "title": "Последних строк дословно",
+      "title_en": "Last lines kept verbatim",
       "type": "int",
       "default": 8,
       "description": "",
@@ -74,6 +88,7 @@
     {
       "key": "history_roll_at",
       "title": "Сжимать историю при строках",
+      "title_en": "Compress history at lines",
       "type": "int",
       "default": 16,
       "description": "",
@@ -83,6 +98,7 @@
     {
       "key": "history_line",
       "title": "Символов в строке истории",
+      "title_en": "Characters per history line",
       "type": "int",
       "default": 300,
       "description": "",
@@ -92,6 +108,7 @@
     {
       "key": "llm_input",
       "title": "Символов входящего сообщения для модели",
+      "title_en": "Incoming message characters for the model",
       "type": "int",
       "default": 1000,
       "description": "",
@@ -99,44 +116,53 @@
       "max": 4000
     },
     {
-      "section": "Модель"
+      "section": "Модель",
+      "section_en": "Model"
     },
     {
       "key": "backend",
       "title": "Откуда брать модель",
+      "title_en": "Model source",
       "type": "select",
       "default": "auto",
       "description": "",
       "options": [
         {
           "value": "auto",
-          "title": "Авто (Claude, Gemini, свои провайдеры, API)"
+          "title": "Авто (Claude, Gemini, свои провайдеры, API)",
+          "title_en": "Auto (Claude, Gemini, custom providers, API)"
         },
         {
           "value": "cli",
-          "title": "Только Claude"
+          "title": "Только Claude",
+          "title_en": "Claude only"
         },
         {
           "value": "gemini",
-          "title": "Только Gemini"
+          "title": "Только Gemini",
+          "title_en": "Gemini only"
         },
         {
           "value": "codex",
-          "title": "Только Codex (GPT)"
+          "title": "Только Codex (GPT)",
+          "title_en": "Codex (GPT) only"
         },
         {
           "value": "providers",
-          "title": "Только свои провайдеры (OpenAI-совместимые, DeepSeek)"
+          "title": "Только свои провайдеры (OpenAI-совместимые, DeepSeek)",
+          "title_en": "Custom providers only (OpenAI-compatible, DeepSeek)"
         },
         {
           "value": "api",
-          "title": "Только API-ключ"
+          "title": "Только API-ключ",
+          "title_en": "API key only"
         }
       ]
     },
     {
       "key": "model",
       "title": "Модель Claude",
+      "title_en": "Claude model",
       "type": "string",
       "default": "claude-haiku-5-5",
       "description": ""
@@ -144,13 +170,16 @@
     {
       "key": "style_model",
       "title": "Модель Claude для стиля",
+      "title_en": "Claude model for style",
       "type": "string",
       "default": "claude-sonnet-5-5",
-      "description": "Для analyze-style."
+      "description": "Для analyze-style.",
+      "description_en": "For analyze-style."
     },
     {
       "key": "gemini_model",
       "title": "Модель Gemini",
+      "title_en": "Gemini model",
       "type": "string",
       "default": "gemini-2.5-flash",
       "description": ""
@@ -158,6 +187,7 @@
     {
       "key": "backend_cooldown",
       "title": "Пропуск бэкенда после лимита, с",
+      "title_en": "Backend skip after limit, s",
       "type": "int",
       "default": 1800,
       "description": "",
@@ -167,6 +197,7 @@
     {
       "key": "llm_timeout",
       "title": "Таймаут модели, с",
+      "title_en": "Model timeout, s",
       "type": "int",
       "default": 180,
       "description": "",
