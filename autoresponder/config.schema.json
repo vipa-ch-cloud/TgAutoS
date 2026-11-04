@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "file": "profile.json",
+  "note": "Настройки читаются при запуске: изменения применятся после перезапуска скрипта. Команда .reload сбрасывает только счётчики лимитов.",
+  "fields": [
+    {
+      "section": "Профиль"
+    },
+    {
+      "key": "name",
+      "title": "Имя владельца",
+      "type": "string",
+      "default": "v1pach",
+      "description": "Так модель называет тебя."
+    },
+    {
+      "key": "folder",
+      "title": "Папка Telegram",
+      "type": "string",
+      "default": "Переписки",
+      "description": "Отвечать только в личных чатах из этой папки. Пусто: во всех личных чатах."
+    },
+    {
+      "key": "voice_replies",
+      "title": "Ответы на голосовые",
+      "type": "list",
+      "default": [
+        "опять гс"
+      ],
+      "description": "Для голосовых и видеосообщений выбирается случайная фраза."
+    },
+    {
+      "section": "Лимиты ответов модели"
+    },
+    {
+      "key": "chat_limit",
+      "title": "В час на один чат",
+      "type": "int",
+      "default": 20,
+      "description": "",
+      "min": 1,
+      "max": 1000
+    },
+    {
+      "key": "global_limit",
+      "title": "В час на все чаты",
+      "type": "int",
+      "default": 60,
+      "description": "",
+      "min": 1,
+      "max": 10000
+    },
+    {
+      "key": "day_limit",
+      "title": "В сутки на все чаты",
+      "type": "int",
+      "default": 300,
+      "description": "",
+      "min": 1,
+      "max": 100000
+    },
+    {
+      "section": "Контекст"
+    },
+    {
+      "key": "history_keep",
+      "title": "Последних строк дословно",
+      "type": "int",
+      "default": 8,
+      "description": "",
+      "min": 1,
+      "max": 40
+    },
+    {
+      "key": "history_roll_at",
+      "title": "Сжимать историю при строках",
+      "type": "int",
+      "default": 16,
+      "description": "",
+      "min": 2,
+      "max": 40
+    },
+    {
+      "key": "history_line",
+      "title": "Символов в строке истории",
+      "type": "int",
+      "default": 300,
+      "description": "",
+      "min": 50,
+      "max": 2000
+    },
+    {
+      "key": "llm_input",
+      "title": "Символов входящего сообщения для модели",
+      "type": "int",
+      "default": 1000,
+      "description": "",
+      "min": 100,
+      "max": 4000
+    },
+    {
+      "section": "Модель"
+    },
+    {
+      "key": "backend",
+      "title": "Откуда брать модель",
+      "type": "select",
+      "default": "auto",
+      "description": "",
+      "options": [
+        {
+          "value": "auto",
+          "title": "Авто (Claude, Gemini, свои провайдеры, API)"
+        },
+        {
+          "value": "cli",
+          "title": "Только Claude"
+        },
+        {
+          "value": "gemini",
+          "title": "Только Gemini"
+        },
+        {
+          "value": "codex",
+          "title": "Только Codex (GPT)"
+        },
+        {
+          "value": "providers",
+          "title": "Только свои провайдеры (OpenAI-совместимые, DeepSeek)"
+        },
+        {
+          "value": "api",
+          "title": "Только API-ключ"
+        }
+      ]
+    },
+    {
+      "key": "model",
+      "title": "Модель Claude",
+      "type": "string",
+      "default": "claude-haiku-5-5",
+      "description": ""
+    },
+    {
+      "key": "style_model",
+      "title": "Модель Claude для стиля",
+      "type": "string",
+      "default": "claude-sonnet-5-5",
+      "description": "Для analyze-style."
+    },
+    {
+      "key": "gemini_model",
+      "title": "Модель Gemini",
+      "type": "string",
+      "default": "gemini-2.5-flash",
+      "description": ""
+    },
+    {
+      "key": "backend_cooldown",
+      "title": "Пропуск бэкенда после лимита, с",
+      "type": "int",
+      "default": 1800,
+      "description": "",
+      "min": 0,
+      "max": 86400
+    },
+    {
+      "key": "llm_timeout",
+      "title": "Таймаут модели, с",
+      "type": "int",
+      "default": 180,
+      "description": "",
+      "min": 10,
+      "max": 900
+    }
+  ]
+}

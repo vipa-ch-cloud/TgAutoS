@@ -1,0 +1,203 @@
+{
+  "version": 1,
+  "file": "automod.json",
+  "note": "Настройки читаются при запуске: изменения применятся после перезапуска скрипта.",
+  "fields": [
+    {
+      "section": "Наказания"
+    },
+    {
+      "key": "dry_run",
+      "title": "Пробный режим",
+      "type": "bool",
+      "default": false,
+      "description": "Только писать в журнал, наказания не отправлять."
+    },
+    {
+      "key": "max_per_batch",
+      "title": "Наказаний за одну проверку",
+      "type": "int",
+      "default": 5,
+      "description": "Не больше стольких нарушителей за раз.",
+      "min": 0,
+      "max": 50
+    },
+    {
+      "key": "mute_default_minutes",
+      "title": "Мут по умолчанию, минут",
+      "type": "int",
+      "default": 60,
+      "description": "",
+      "min": 1,
+      "max": 100000
+    },
+    {
+      "key": "mute_min_minutes",
+      "title": "Мут не короче, минут",
+      "type": "int",
+      "default": 10,
+      "description": "",
+      "min": 1,
+      "max": 100000
+    },
+    {
+      "key": "mute_max_minutes",
+      "title": "Мут не длиннее, минут",
+      "type": "int",
+      "default": 1440,
+      "description": "",
+      "min": 1,
+      "max": 1000000
+    },
+    {
+      "key": "send_delay",
+      "title": "Пауза между наказаниями, с",
+      "type": "float",
+      "default": 3,
+      "description": "",
+      "min": 0,
+      "max": 600
+    },
+    {
+      "key": "prefix",
+      "title": "Префикс команд Ириса",
+      "type": "string",
+      "default": "!",
+      "description": "Обычно «!» или «.»."
+    },
+    {
+      "section": "Реклама ботов"
+    },
+    {
+      "key": "delete_bot_ads",
+      "title": "Удалять рекламу ботов",
+      "type": "bool",
+      "default": true,
+      "description": "Нужно право удалять сообщения."
+    },
+    {
+      "key": "ad_whitelist",
+      "title": "Разрешённые боты",
+      "type": "list",
+      "default": [],
+      "description": "Имена ботов без @, которым можно писать и рекламироваться."
+    },
+    {
+      "key": "ad_punish_delay",
+      "title": "Пауза перед удалением, с",
+      "type": "float",
+      "default": 3,
+      "description": "",
+      "min": 0,
+      "max": 600
+    },
+    {
+      "key": "ad_punish_cooldown",
+      "title": "Одно наказание за рекламу раз в, с",
+      "type": "int",
+      "default": 600,
+      "description": "",
+      "min": 0,
+      "max": 1000000
+    },
+    {
+      "key": "punish_recent_seconds",
+      "title": "Окно повторного наказания, с",
+      "type": "int",
+      "default": 3600,
+      "description": "Тот же человек за то же правило в этом окне считается уже наказанным.",
+      "min": 0,
+      "max": 10000000
+    },
+    {
+      "section": "Отчёты и проверка"
+    },
+    {
+      "key": "batch_size",
+      "title": "Сообщений в одной проверке",
+      "type": "int",
+      "default": 100,
+      "description": "Для отдельного чата можно командой .context N.",
+      "min": 10,
+      "max": 500
+    },
+    {
+      "key": "report_to",
+      "title": "Куда писать отчёты",
+      "type": "select",
+      "default": "chat",
+      "description": "",
+      "options": [
+        {
+          "value": "chat",
+          "title": "В чат"
+        },
+        {
+          "value": "saved",
+          "title": "В «Избранное»"
+        }
+      ]
+    },
+    {
+      "key": "report_ttl",
+      "title": "Удалять отчёт через, с",
+      "type": "int",
+      "default": 30,
+      "description": "0: не удалять.",
+      "min": 0,
+      "max": 86400
+    },
+    {
+      "section": "Модель"
+    },
+    {
+      "key": "backend",
+      "title": "Откуда брать модель",
+      "type": "select",
+      "default": "auto",
+      "description": "",
+      "options": [
+        {
+          "value": "auto",
+          "title": "Авто (Claude, Gemini, свои провайдеры, API)"
+        },
+        {
+          "value": "cli",
+          "title": "Только Claude"
+        },
+        {
+          "value": "gemini",
+          "title": "Только Gemini"
+        },
+        {
+          "value": "codex",
+          "title": "Только Codex (GPT)"
+        },
+        {
+          "value": "providers",
+          "title": "Только свои провайдеры (OpenAI-совместимые, DeepSeek)"
+        },
+        {
+          "value": "api",
+          "title": "Только API-ключ"
+        }
+      ]
+    },
+    {
+      "key": "gemini_model",
+      "title": "Модель Gemini",
+      "type": "string",
+      "default": "gemini-2.5-flash",
+      "description": ""
+    },
+    {
+      "key": "backend_cooldown",
+      "title": "Пропуск бэкенда после лимита, с",
+      "type": "int",
+      "default": 1800,
+      "description": "",
+      "min": 0,
+      "max": 86400
+    }
+  ]
+}
