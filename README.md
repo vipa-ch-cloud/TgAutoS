@@ -1,12 +1,19 @@
-# TeleScript scripts
+# TgAutoS
 
-Telethon userbot scripts for the TeleScript Android app (the app lives in its own repository).
-Pick the folder with these scripts in the app: the "Scripts" tab, "Выбери папку со скриптами".
+Telethon userbot scripts for the TgAuto Android app: https://github.com/vipa-ch-cloud/TgAuto
 
-| Folder | What it does |
+Выберите папку с этими скриптами в приложении (вкладка «Скрипты»). Каждый скрипт лежит в своей папке: `<id>.py`, README и `config.schema.json`.
+
+| Папка | Что делает |
 |---|---|
-| `automod/` | Telegram chat automoderation (LLM-assisted). See `automod/README.md`. |
-| `autoresponder/` | Personal-account auto-reply. See `autoresponder/README.md`. |
+| `automod/` | Автомодерация чатов Telegram с помощью LLM. См. `automod/README.md`. |
+| `autoresponder/` | Автоответчик для личного аккаунта. См. `autoresponder/README.md`. |
 
-Each folder has `<id>.py`, a README and `config.schema.json`, which drives the "Конфиг" form in the app.
-Secrets (api_id/api_hash, sessions, LLM keys) are never stored here: the app passes them to the script at run time.
+## Формат config.schema.json
+Файл рядом со скриптом включает кнопку «Конфиг» в приложении. Схема описывает разделы и поля (переключатели, числа, текст, списки, выбор), приложение рисует форму и записывает только изменённые ключи в конфиг скрипта. Поля с именами, похожими на секреты (ключи, пароли, токены), не показываются. Живые примеры: `automod/config.schema.json` и `autoresponder/config.schema.json`.
+
+## Секреты
+api_id/api_hash, сессии и ключи LLM здесь не хранятся: приложение передаёт их скрипту при запуске (переменные окружения `TELESCRIPT_*`).
+
+## Лицензия
+Файл `LICENSE` пока заглушка: лицензия будет выбрана автором.
