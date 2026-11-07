@@ -52,8 +52,8 @@
   },
   {
    "author": "vipa-ch-cloud",
-   "changelog_en": "Store card metadata (title, icon, color, repo, date).",
-   "changelog_ru": "Метаданные карточки магазина (название, значок, цвет, репозиторий, дата).",
+   "changelog_en": "Style analysis from the app: choose chats, review and edit the guide before saving (style-chats / style-draft).",
+   "changelog_ru": "Анализ стиля из приложения: выбор чатов, правка описания перед сохранением (style-chats / style-draft).",
    "color": "#0F6B7A",
    "description_en": "Replies for you in private chats and chosen Telegram groups through a tool-less language model.",
    "description_ru": "Отвечает за вас в личке и выбранных группах Telegram через языковую модель без инструментов.",
@@ -81,9 +81,9 @@
    },
    "published": "2026-11-07",
    "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
-   "sha256": "9c2f99efe1e5eabfddfcb5200e49d1969ca85b5907bb250fe14ee31f0d091f57",
+   "sha256": "2717484dbc0dddde22f898019469aaf4a5488410425e856d5a10a7569f44f185",
    "signed": true,
-   "size": 32799,
+   "size": 33774,
    "tags": [
     "autoreply",
     "llm",
@@ -91,10 +91,10 @@
    ],
    "title_en": "Auto Responder",
    "title_ru": "Автоответчик",
-   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/autoresponder-1.1.1.tgascript",
+   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/autoresponder-1.2.0.tgascript",
    "verified": true,
-   "version": "1.1.1"
+   "version": "1.2.0"
   }
  ],
- "updated": "2026-11-07T16:07:20Z"
+ "updated": "2026-11-07T17:44:15Z"
 }
