@@ -1,8 +1,8 @@
 {
   "version": 1,
   "file": "automod.json",
-  "note": "Настройки читаются при запуске: изменения применятся после перезапуска скрипта.",
-  "note_en": "Settings are read at startup: changes apply after the script is restarted.",
+  "note": "Настройки читаются при запуске: изменения применятся после перезапуска скрипта. Чаты и режимы включаются командами (.automod, .context), они хранятся в состоянии.",
+  "note_en": "Settings are read at startup: changes apply after the script is restarted. Chats and modes are switched with commands (.automod, .context) and kept in state.",
   "fields": [
     {
       "section": "Наказания",
@@ -131,6 +131,81 @@
       "max": 10000000
     },
     {
+      "section": "Фильтр рекламы",
+      "section_en": "Ad filter"
+    },
+    {
+      "key": "ad_prefilter",
+      "title": "Фильтр по шаблонам",
+      "title_en": "Pattern pre-filter",
+      "type": "bool",
+      "default": true,
+      "description": "Ссылки-приглашения, упоминания каналов и ботов с рекламными словами ловятся без модели; модель получает подсказку.",
+      "description_en": "Invite links and channel/bot mentions with promo words are caught without the model; the model gets a hint."
+    },
+    {
+      "key": "ad_keywords",
+      "title": "Свои шаблоны рекламы",
+      "title_en": "Custom ad patterns",
+      "type": "list",
+      "default": [],
+      "description": "Регулярные выражения (например Celestiana, Bunker): совпадение само по себе считается рекламой.",
+      "description_en": "Regexes (e.g. Celestiana, Bunker): a match alone counts as an ad."
+    },
+    {
+      "key": "ad_promo_words",
+      "title": "Свои рекламные слова",
+      "title_en": "Custom promo words",
+      "type": "list",
+      "default": [],
+      "description": "Регулярные выражения: считаются рекламой, если в сообщении есть ссылка или @имя.",
+      "description_en": "Regexes: count as an ad when the message has a link or @name."
+    },
+    {
+      "key": "delete_flagged_ads",
+      "title": "Удалять рекламу, найденную моделью",
+      "title_en": "Delete model-flagged ads",
+      "type": "bool",
+      "default": true,
+      "description": "Сообщения с категорией реклама, спам или мошенничество удаляются после наказания. Админы и владелец не затрагиваются.",
+      "description_en": "Messages the model flagged as ad, spam or scam are deleted after the punishment. Admins and the owner are exempt."
+    },
+    {
+      "section": "Тестовый прогон .amt",
+      "section_en": "Test run .amt"
+    },
+    {
+      "key": "amt_max",
+      "title": "Максимум ответов за запуск",
+      "title_en": "Max replies per run",
+      "type": "int",
+      "default": 20,
+      "description": "Команда .amt отвечает «Тестовое сообщение: Найдено нарушение!» на нарушения, ничего не удаляя и не наказывая.",
+      "description_en": "`.amt` replies to violations and never deletes or punishes.",
+      "min": 1,
+      "max": 200
+    },
+    {
+      "key": "amt_delay",
+      "title": "Пауза между ответами, с",
+      "title_en": "Pause between replies, s",
+      "type": "float",
+      "default": 2,
+      "description": "",
+      "min": 0,
+      "max": 60
+    },
+    {
+      "key": "amt_scan",
+      "title": "Сколько сообщений проверять",
+      "title_en": "Messages to scan",
+      "type": "int",
+      "default": 200,
+      "description": "",
+      "min": 10,
+      "max": 2000
+    },
+    {
       "section": "Отчёты и проверка",
       "section_en": "Reports and checking"
     },
@@ -146,12 +221,33 @@
       "max": 500
     },
     {
+      "key": "message_chars",
+      "title": "Символов одного сообщения",
+      "title_en": "Characters per message",
+      "type": "int",
+      "default": 500,
+      "description": "Сколько символов сообщения видит модель.",
+      "description_en": "How much of a message the model sees.",
+      "min": 50,
+      "max": 4000
+    },
+    {
+      "key": "rules_chars",
+      "title": "Символов правил",
+      "title_en": "Rules characters",
+      "type": "int",
+      "default": 8000,
+      "description": "",
+      "min": 500,
+      "max": 50000
+    },
+    {
       "key": "report_to",
       "title": "Куда писать отчёты",
       "title_en": "Where to send reports",
       "type": "select",
       "default": "chat",
-      "description": "",
+      "description": " Отчёт остаётся в чате.",
       "options": [
         {
           "value": "chat",
@@ -163,18 +259,8 @@
           "title": "В «Избранное»",
           "title_en": "To Saved Messages"
         }
-      ]
-    },
-    {
-      "key": "report_ttl",
-      "title": "Удалять отчёт через, с",
-      "title_en": "Delete report after, s",
-      "type": "int",
-      "default": 30,
-      "description": "0: не удалять.",
-      "description_en": "0: do not delete.",
-      "min": 0,
-      "max": 86400
+      ],
+      "description_en": " The report stays in the chat."
     },
     {
       "section": "Модель",

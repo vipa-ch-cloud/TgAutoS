@@ -1142,7 +1142,7 @@ class Providers(unittest.IsolatedAsyncioTestCase):
     def test_codex_argv_is_read_only_without_approvals(self):
         argv = MOD.CodexBackend("gpt-5").argv("codex")
         self.assertEqual(argv, ["codex", "exec", "--sandbox", "read-only", "--ephemeral",
-                                "--skip-git-repo-check", "-c", 'approval_policy="never"',
+                                "--skip-git-repo-check",
                                 "-m", "gpt-5", "-"])
         self.assertEqual(MOD.CodexBackend("").argv("codex")[-1], "-")
         self.assertNotIn("-m", MOD.CodexBackend("").argv("codex"))
@@ -1172,6 +1172,16 @@ class Providers(unittest.IsolatedAsyncioTestCase):
                 patch("asyncio.create_subprocess_exec", AsyncMock(return_value=proc)):
             with self.assertRaises(MOD.RateLimited):
                 await MOD.CodexBackend("", sandbox=box).complete("s", "u")
+
+    async def test_codex_auth_hint(self):
+        from unittest.mock import patch, AsyncMock, MagicMock
+        proc = MagicMock(returncode=1)
+        proc.communicate = AsyncMock(return_value=(b"", b"Not logged in"))
+        with tempfile.TemporaryDirectory() as box, \
+                patch("asyncio.create_subprocess_exec", AsyncMock(return_value=proc)):
+            with self.assertRaises(RuntimeError) as ctx:
+                await MOD.CodexBackend("", sandbox=box).complete("s", "u")
+        self.assertIn("codex login", str(ctx.exception))
 
 
 if __name__ == "__main__":
@@ -1642,7 +1652,7 @@ class Providers(unittest.IsolatedAsyncioTestCase):
     def test_codex_argv_is_read_only_without_approvals(self):
         argv = MOD.CodexBackend("gpt-5").argv("codex")
         self.assertEqual(argv, ["codex", "exec", "--sandbox", "read-only", "--ephemeral",
-                                "--skip-git-repo-check", "-c", 'approval_policy="never"',
+                                "--skip-git-repo-check",
                                 "-m", "gpt-5", "-"])
         self.assertEqual(MOD.CodexBackend("").argv("codex")[-1], "-")
         self.assertNotIn("-m", MOD.CodexBackend("").argv("codex"))
@@ -1672,6 +1682,101 @@ class Providers(unittest.IsolatedAsyncioTestCase):
                 patch("asyncio.create_subprocess_exec", AsyncMock(return_value=proc)):
             with self.assertRaises(MOD.RateLimited):
                 await MOD.CodexBackend("", sandbox=box).complete("s", "u")
+
+    async def test_codex_auth_hint(self):
+        from unittest.mock import patch, AsyncMock, MagicMock
+        proc = MagicMock(returncode=1)
+        proc.communicate = AsyncMock(return_value=(b"", b"Not logged in"))
+        with tempfile.TemporaryDirectory() as box, \
+                patch("asyncio.create_subprocess_exec", AsyncMock(return_value=proc)):
+            with self.assertRaises(RuntimeError) as ctx:
+                await MOD.CodexBackend("", sandbox=box).complete("s", "u")
+        self.assertIn("codex login", str(ctx.exception))
+
+
+class ReconnectFilterTest(unittest.TestCase):
+    def setUp(self):
+        self.now = [0.0]
+        self.flt = MOD.ReconnectFilter(interval=60, clock=lambda: self.now[0])
+        self.out = []
+        h = logging.Handler()
+        h.emit = lambda r: self.out.append(r.getMessage())
+        self.mod_log = MOD.log
+        self.old = (self.mod_log.handlers[:], self.mod_log.level, self.mod_log.propagate)
+        self.mod_log.handlers, self.mod_log.propagate = [h], False
+        self.mod_log.setLevel(logging.INFO)
+
+    def tearDown(self):
+        self.mod_log.handlers, level, self.mod_log.propagate = self.old
+        self.mod_log.setLevel(level)
+
+    def rec(self, msg, name="telethon.network.mtprotosender", level=logging.WARNING, exc=None):
+        return logging.LogRecord(name, level, __file__, 1, msg, None, exc)
+
+    def test_spam_collapsed_and_rate_limited(self):
+        spam = ["Server closed the connection: 0 bytes read on a total of 8 expected bytes",
+                "Attempt 3 at connecting failed: OSError: Connect call failed ('149.154.167.51', 443)"]
+        for _ in range(5):
+            for m in spam:
+                self.assertFalse(self.flt.filter(self.rec(m)))
+        self.assertEqual(len(self.out), 1)
+        self.assertIn("нет связи", self.out[0])
+        self.now[0] = 61
+        self.flt.filter(self.rec(spam[0]))
+        self.assertEqual(len(self.out), 2)
+
+    def test_restored_once(self):
+        self.flt.filter(self.rec("Server closed the connection: x"))
+        ok = self.rec("Connection to 149.154.167.51:443/TcpFull complete!", level=logging.INFO)
+        self.assertFalse(self.flt.filter(ok))
+        self.assertFalse(self.flt.filter(ok))
+        self.assertEqual([("нет связи" in m) for m in self.out], [True, False])
+        self.assertIn("восстановлена", self.out[1])
+
+    def test_real_errors_pass(self):
+        self.assertTrue(self.flt.filter(self.rec("Unhandled error while receiving updates", level=logging.ERROR)))
+        err = self.rec("Server closed the connection: x", exc=(ValueError, ValueError("a"), None))
+        self.assertTrue(self.flt.filter(err))
+        self.assertTrue(self.flt.filter(self.rec("batch failed in 1", name=MOD.log.name, level=logging.ERROR)))
+        self.assertEqual(self.out, [])
+
+
+class RealHistory(Base):
+    def feed(self, items):
+        async def iterate(chat, limit=None, offset_id=0):
+            for m in items:
+                yield m
+        self.client.iter_messages = iterate
+
+    async def test_llm_gets_real_telegram_history(self):
+        self.state.start()
+        self.state.greeted.add(ALICE)
+        self.feed([NS(id=3, message="новее", out=False, action=None),
+                   NS(id=2, message="мой ответ", out=True, action=None),
+                   NS(id=1, message=".start", out=True, action=None),
+                   NS(id=0, message="старее", out=False, action=None)])
+        await self.bot.on_incoming(event(text="вопрос"))
+        history = self.llm.await_args.args[0]
+        self.assertEqual(history, [("собеседник", "старее"), (bot.OWNER, "мой ответ"),
+                                   ("собеседник", "новее")])
+
+    async def test_history_read_failure_falls_back_to_state(self):
+        self.state.start()
+        self.state.greeted.add(ALICE)
+        self.state.add_history(ALICE, ("собеседник", "из состояния"))
+
+        async def broken(*a, **k):
+            raise RuntimeError("flood")
+            yield
+        self.client.iter_messages = broken
+        await self.bot.on_incoming(event(text="вопрос"))
+        self.assertEqual(self.llm.await_args.args[0], [("собеседник", "из состояния")])
+
+    async def test_reply_in_saved_messages_is_delivered(self):
+        self.state.remember_relay(77, ALICE, 5)
+        await self.bot.on_outgoing(event(chat_id=ME, text="ответ", reply_to=77))
+        self.assertEqual(self.client.sent, [(ALICE, 'Ответ! v1pach передал: "ответ"')])
+        self.assertEqual(self.client.kwargs[-1]["reply_to"], 5)
 
 
 if __name__ == "__main__":

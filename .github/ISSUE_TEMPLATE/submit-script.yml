@@ -1,0 +1,28 @@
+name: Submit a script / Предложить скрипт
+description: Propose a script for the TgAuto catalog. The owner reviews it before it is listed.
+labels: ["submission"]
+body:
+  - type: input
+    id: name
+    attributes: {label: Name / Название}
+    validations: {required: true}
+  - type: input
+    id: repo
+    attributes:
+      label: Source link (repo or release asset .tgascript) / Ссылка на исходники
+    validations: {required: true}
+  - type: textarea
+    id: desc
+    attributes: {label: What it does (en/ru) / Что делает}
+    validations: {required: true}
+  - type: textarea
+    id: perms
+    attributes: {label: Permissions and network hosts it uses / Разрешения и сетевые адреса}
+    validations: {required: true}
+  - type: checkboxes
+    id: ok
+    attributes:
+      label: Confirmation
+      options:
+        - label: I am the author or have the right to publish it / Я автор или имею право публикации
+          required: true

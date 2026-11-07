@@ -1,0 +1,86 @@
+{
+ "format": "tgastore/1",
+ "scripts": [
+  {
+   "author": "vipa-ch-cloud",
+   "changelog_en": "Deterministic ad prefilter (invite links, promo channels/bots, channel forwards), .amt test run, delete_flagged_ads, bot reports stay in chat, new config options.",
+   "changelog_ru": "Детерминированный фильтр рекламы (ссылки-приглашения, рекламные каналы/боты, пересылки), тестовый прогон .amt, delete_flagged_ads, отчёты бота остаются в чате, новые настройки.",
+   "description_en": "LLM-based chat moderation for Telegram groups: sends message batches plus chat rules to a language model and asks the Iris chat manager to punish offenders. The model gets no tools.",
+   "description_ru": "Автомодерация групповых чатов Telegram с помощью LLM: пачки сообщений и правила чата уходят модели, наказания выполняет чат-менеджер Ирис. Модели не даются инструменты.",
+   "id": "automod",
+   "name": "automod",
+   "official": true,
+   "permissions": {
+    "files": "config dir only (api.json, proxy.json, automod.json, state)",
+    "llm": true,
+    "network": [
+     "api.anthropic.com",
+     "api.telegra.ph",
+     "any http(s) page given as rules link",
+     "OpenAI-compatible base_url set by user (may be localhost)"
+    ],
+    "subprocess": [
+     "claude",
+     "gemini",
+     "codex CLI (optional, if installed)"
+    ],
+    "telegram": [
+     "read group messages",
+     "send messages/replies and Iris commands",
+     "delete messages",
+     "read chat admin rights"
+    ]
+   },
+   "sha256": "69b8812dc0b724ca2e305c8fdc887fd5b40813fccd6081bbe7dca4620378cb95",
+   "signed": true,
+   "size": 41985,
+   "tags": [
+    "moderation",
+    "llm",
+    "telegram"
+   ],
+   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/automod-1.1.tgascript",
+   "verified": true,
+   "version": "1.1"
+  },
+  {
+   "author": "vipa-ch-cloud",
+   "changelog_en": "Config schema and reply-handling improvements, updated tests.",
+   "changelog_ru": "Улучшения схемы настроек и обработки ответов, обновлены тесты.",
+   "description_en": "Auto-responder for a personal Telegram account: replies in private chats and chosen groups through a tool-less language model.",
+   "description_ru": "Автоответчик для личного аккаунта Telegram: отвечает в личке и выбранных группах через языковую модель без инструментов.",
+   "id": "autoresponder",
+   "name": "autoresponder",
+   "official": true,
+   "permissions": {
+    "files": "config dir only (api.json, proxy.json, groups.json, profile.json, history)",
+    "llm": true,
+    "network": [
+     "api.anthropic.com",
+     "OpenAI-compatible base_url set by user (may be localhost)"
+    ],
+    "subprocess": [
+     "claude",
+     "gemini",
+     "codex CLI (optional, if installed)"
+    ],
+    "telegram": [
+     "read incoming messages and history",
+     "send messages/replies"
+    ]
+   },
+   "sha256": "7fafad6ae06550ce6d03f18a5166e5e9b37b25175299416de048df4475510399",
+   "signed": true,
+   "size": 32725,
+   "tags": [
+    "autoreply",
+    "llm",
+    "telegram"
+   ],
+   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/autoresponder-1.1.tgascript",
+   "verified": true,
+   "version": "1.1"
+  }
+ ],
+ "updated": "2026-11-07T15:58:02Z"
+}

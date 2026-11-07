@@ -24,7 +24,7 @@ logging.disable(logging.CRITICAL)
 
 SETTINGS = automod.load_settings(Path(TMP) / "missing.json")
 SETTINGS["send_delay"] = 0
-SETTINGS["report_ttl"] = 0
+SETTINGS["amt_delay"] = 0
 
 
 def msg(id, user_id, text="привет", **extra):
@@ -1376,7 +1376,7 @@ class Providers(unittest.IsolatedAsyncioTestCase):
     def test_codex_argv_is_read_only_without_approvals(self):
         argv = MOD.CodexBackend("gpt-5").argv("codex")
         self.assertEqual(argv, ["codex", "exec", "--sandbox", "read-only", "--ephemeral",
-                                "--skip-git-repo-check", "-c", 'approval_policy="never"',
+                                "--skip-git-repo-check",
                                 "-m", "gpt-5", "-"])
         self.assertEqual(MOD.CodexBackend("").argv("codex")[-1], "-")
         self.assertNotIn("-m", MOD.CodexBackend("").argv("codex"))
@@ -1406,6 +1406,200 @@ class Providers(unittest.IsolatedAsyncioTestCase):
                 patch("asyncio.create_subprocess_exec", AsyncMock(return_value=proc)):
             with self.assertRaises(MOD.RateLimited):
                 await MOD.CodexBackend("", sandbox=box).complete("s", "u")
+
+    async def test_codex_auth_hint(self):
+        from unittest.mock import patch, AsyncMock, MagicMock
+        proc = MagicMock(returncode=1)
+        proc.communicate = AsyncMock(return_value=(b"", b"Not logged in"))
+        with tempfile.TemporaryDirectory() as box, \
+                patch("asyncio.create_subprocess_exec", AsyncMock(return_value=proc)):
+            with self.assertRaises(RuntimeError) as ctx:
+                await MOD.CodexBackend("", sandbox=box).complete("s", "u")
+        self.assertIn("codex login", str(ctx.exception))
+
+
+class ReconnectFilterTest(unittest.TestCase):
+    def setUp(self):
+        previous = logging.root.manager.disable
+        logging.disable(logging.NOTSET)
+        self.addCleanup(logging.disable, previous)
+        self.now = [0.0]
+        self.flt = MOD.ReconnectFilter(interval=60, clock=lambda: self.now[0])
+        self.out = []
+        h = logging.Handler()
+        h.emit = lambda r: self.out.append(r.getMessage())
+        self.mod_log = MOD.log
+        self.old = (self.mod_log.handlers[:], self.mod_log.level, self.mod_log.propagate)
+        self.mod_log.handlers, self.mod_log.propagate = [h], False
+        self.mod_log.setLevel(logging.INFO)
+
+    def tearDown(self):
+        self.mod_log.handlers, level, self.mod_log.propagate = self.old
+        self.mod_log.setLevel(level)
+
+    def rec(self, msg, name="telethon.network.mtprotosender", level=logging.WARNING, exc=None):
+        return logging.LogRecord(name, level, __file__, 1, msg, None, exc)
+
+    def test_spam_collapsed_and_rate_limited(self):
+        spam = ["Server closed the connection: 0 bytes read on a total of 8 expected bytes",
+                "Attempt 3 at connecting failed: OSError: Connect call failed ('149.154.167.51', 443)"]
+        for _ in range(5):
+            for m in spam:
+                self.assertFalse(self.flt.filter(self.rec(m)))
+        self.assertEqual(len(self.out), 1)
+        self.assertIn("нет связи", self.out[0])
+        self.now[0] = 61
+        self.flt.filter(self.rec(spam[0]))
+        self.assertEqual(len(self.out), 2)
+
+    def test_restored_once(self):
+        self.flt.filter(self.rec("Server closed the connection: x"))
+        ok = self.rec("Connection to 149.154.167.51:443/TcpFull complete!", level=logging.INFO)
+        self.assertFalse(self.flt.filter(ok))
+        self.assertFalse(self.flt.filter(ok))
+        self.assertEqual([("нет связи" in m) for m in self.out], [True, False])
+        self.assertIn("восстановлена", self.out[1])
+
+    def test_real_errors_pass(self):
+        self.assertTrue(self.flt.filter(self.rec("Unhandled error while receiving updates", level=logging.ERROR)))
+        err = self.rec("Server closed the connection: x", exc=(ValueError, ValueError("a"), None))
+        self.assertTrue(self.flt.filter(err))
+        self.assertTrue(self.flt.filter(self.rec("batch failed in 1", name=MOD.log.name, level=logging.ERROR)))
+        self.assertEqual(self.out, [])
+
+
+def hist(id, user_id, text, **extra):
+    sender = SimpleNamespace(id=user_id, username=f"u{user_id}", bot=False, first_name=f"U{user_id}",
+                             last_name=None)
+    return SimpleNamespace(id=id, message=text, action=None, media=None, sender_id=user_id,
+                           reply_to_msg_id=None, fwd_from=None, entities=None, reply_markup=None,
+                           via_bot_id=None, get_sender=mock.AsyncMock(return_value=sender), **extra)
+
+
+class PromoPrefilter(unittest.TestCase):
+    def detect(self, text, **kw):
+        return automod.detect_promo_ad({"text": text, **kw}, dict(SETTINGS, **kw.pop("cfg", {})))
+
+    def test_invite_link_is_strong(self):
+        self.assertEqual(self.detect("залетай t.me/+AbCdEf12345")[0], "strong")
+
+    def test_channel_plug_is_strong(self):
+        self.assertEqual(self.detect("Подписывайся на наш канал @celestiana_news")[0], "strong")
+
+    def test_plain_mention_and_link_are_not_strong(self):
+        self.assertNotEqual(self.detect("@vasya привет, как дела")[0], "strong")
+        self.assertNotEqual(self.detect("глянь https://example.com/article")[0], "strong")
+        self.assertIsNone(self.detect("обычное сообщение")[0])
+
+    def test_custom_keyword_alone_is_strong(self):
+        found = automod.detect_promo_ad({"text": "Bunker лучший"},
+                                        dict(SETTINGS, ad_keywords=["bunker"]))
+        self.assertEqual(found[0], "strong")
+
+    def test_bad_regex_is_ignored(self):
+        found = automod.detect_promo_ad({"text": "привет"}, dict(SETTINGS, ad_keywords=["(["]))
+        self.assertIsNone(found[0])
+
+    def test_forwarded_channel_ad(self):
+        self.assertEqual(self.detect("t.me/somechannel", fwd_kind="channel")[0], "strong")
+
+
+class AdsInBatchPath(AdFlow):
+    def test_channel_ad_is_deleted_and_punished(self):
+        bot = self.make_bot(rules="1. Реклама — мут 1 день")
+        self.send(bot, "Подписывайся на наш канал t.me/+AbCdEf12345", username="spammer")
+        self.assertIn(("delete", [77]), bot.client.calls)
+
+    def test_admin_ad_is_not_touched(self):
+        bot = self.make_bot(admins=(500,))
+        self.send(bot, "Подписывайся на наш канал t.me/+AbCdEf12345")
+        self.assertEqual(bot.client.calls, [])
+
+    def test_prefilter_can_be_turned_off(self):
+        bot = self.make_bot(ad_prefilter=False)
+        self.send(bot, "Подписывайся на наш канал t.me/+AbCdEf12345")
+        self.assertEqual(bot.client.calls, [])
+
+    def test_hint_reaches_the_model(self):
+        text = automod.build_batch_text("1. x", [msg(1, 5, "t.me/abcde", hint=True),
+                                                 msg(2, -100, "x")], set())
+        self.assertIn("[подозрение: реклама]", text)
+        self.assertIn("[канал]", text)
+
+    def test_prompt_defines_ads(self):
+        self.assertIn("Реклама это нарушение", automod.SYSTEM_PROMPT)
+
+    def test_flagged_ad_message_is_deleted(self):
+        bot = self.make_bot(rules="1. Реклама — варн")
+        bot.client.get_messages = mock.AsyncMock(return_value=SimpleNamespace(id=9, action=None))
+        batch = [msg(9, 500, "купи курс", username="s")]
+        asyncio.run(bot.punish(-1001, {"message_id": 9, "user_id": 500, "rule": "1",
+                                       "punishment": "warn", "duration_minutes": None,
+                                       "category": "ad", "reason": "x"}, batch))
+        self.assertIn(("delete", [9]), bot.client.calls)
+
+    def test_report_stays_in_chat(self):
+        bot = self.make_bot()
+        asyncio.run(bot.report(-1001, "итог"))
+        self.assertEqual(bot.client.sent[-1][1], "итог")
+        self.assertFalse(hasattr(bot, "_delete_quietly"))
+
+
+class TestRun(AdFlow):
+    def make_amt(self, history, answer='{"violations": []}', **settings):
+        bot = self.make_bot(**settings)
+        bot.state.chats.clear()  # not enabled in this chat
+        bot.backend = FakeBackend(answer)
+        bot.client.history = history
+        return bot
+
+    def test_parse(self):
+        self.assertEqual(automod.parse_command(".amt")["action"], "amt")
+
+    def test_replies_only_no_punishment_and_works_when_disabled(self):
+        bot = self.make_amt([hist(1, 500, "привет"),
+                             hist(2, 600, "заходи в наш канал t.me/+AbCdEf12345"),
+                             hist(3, 1, "и я тоже t.me/+ZzZzZzZz1234 подпишись")])
+        report = asyncio.run(bot.test_run(-1001))
+        self.assertEqual([(t, r) for _, t, r in bot.client.sent],
+                         [(automod.AMT_TEXT, 2), (automod.AMT_TEXT, 3)])
+        self.assertEqual(bot.client.deleted, [])
+        self.assertIn("проверено сообщений 3, найдено нарушений 2", report)
+        self.assertFalse(bot.state.enabled(-1001))
+
+    def test_admins_are_checked_too(self):
+        bot = self.make_amt([hist(1, 500, "t.me/+AbCdEf12345")], admins=(500,))
+        asyncio.run(bot.test_run(-1001))
+        self.assertEqual(len(bot.client.sent), 1)
+
+    def test_model_verdict_counts(self):
+        bot = self.make_amt([hist(1, 500, "грубость")],
+                            answer='{"violations": [{"message_id": 1, "user_id": 500, "rule": "2", '
+                                   '"punishment": "warn", "category": "insult", "reason": "x"}]}')
+        asyncio.run(bot.test_run(-1001))
+        self.assertEqual([r for _, _, r in bot.client.sent], [1])
+
+    def test_cap(self):
+        history = [hist(i, 500 + i, f"t.me/+AbCdEf{i:06d}") for i in range(1, 8)]
+        bot = self.make_amt(history, amt_max=3)
+        report = asyncio.run(bot.test_run(-1001))
+        self.assertEqual(len(bot.client.sent), 3)
+        self.assertIn("найдено нарушений 7", report)
+        self.assertIn("отвечено 3", report)
+
+    def test_own_test_replies_and_commands_are_skipped(self):
+        bot = self.make_amt([hist(1, 1, automod.AMT_TEXT), hist(2, 1, ".amt")])
+        report = asyncio.run(bot.test_run(-1001))
+        self.assertIn("проверено сообщений 0", report)
+
+    def test_command_dispatch(self):
+        bot = self.make_amt([hist(2, 600, "t.me/+AbCdEf12345")])
+        bot.client.get_permissions = mock.AsyncMock()
+        event = fake_event(-1001, 50, 1, ".amt")
+        asyncio.run(bot.on_command(event))
+        texts = [t for _, t, _ in bot.client.sent]
+        self.assertEqual(texts[0], automod.AMT_TEXT)
+        self.assertIn("тест .amt", texts[-1])
 
 
 if __name__ == "__main__":
