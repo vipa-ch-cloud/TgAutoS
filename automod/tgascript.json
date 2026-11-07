@@ -1,8 +1,8 @@
 {
   "id": "automod",
   "name": "automod",
-  "version": "1.1.1",
-  "build": 3,
+  "version": "1.1.2",
+  "build": 4,
   "author": "vipa-ch-cloud",
   "entry": "automod.py",
   "description_en": "Keeps Telegram groups tidy: an LLM reads messages against the chat rules and asks Iris to punish offenders.",
@@ -33,8 +33,8 @@
     ],
     "files": "config dir only (api.json, proxy.json, automod.json, state)"
   },
-  "changelog_en": "Store card metadata (title, icon, color, repo, date).",
-  "changelog_ru": "Метаданные карточки магазина (название, значок, цвет, репозиторий, дата).",
+  "changelog_en": "New owner commands: .amign (reply to a message) ignores its author in all chats, .amunign removes the ignore, .amignlist shows the list.",
+  "changelog_ru": "Новые команды владельца: .amign (ответом на сообщение) игнорирует его автора во всех чатах, .amunign снимает игнор, .amignlist показывает список.",
   "title_ru": "Автомодератор",
   "title_en": "Auto Moderator",
   "icon": "shield",

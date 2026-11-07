@@ -1602,5 +1602,79 @@ class TestRun(AdFlow):
         self.assertIn("тест .amt", texts[-1])
 
 
+class IgnoreCommands(Batching):
+    def run_cmd(self, bot, text, reply_to=None, sender=1):
+        event = fake_event(-1001, 50, sender, text)
+        event.get_reply_message = mock.AsyncMock(
+            return_value=None if reply_to is None else SimpleNamespace(sender_id=reply_to))
+        asyncio.run(bot.on_command(event))
+        return event
+
+    def test_parse(self):
+        for word in ("ign", "unign", "ignlist"):
+            self.assertEqual(automod.parse_command(f".am{word}")["action"], word)
+        self.assertEqual(automod.parse_command(" .AMIGN ")["action"], "ign")
+        self.assertIsNone(automod.parse_command(".amignx"))
+
+    def test_ignore_reply_persists_and_deletes_command(self):
+        bot = self.make_bot('{"violations": []}')
+        event = self.run_cmd(bot, ".amign", reply_to=777)
+        event.delete.assert_awaited_once()
+        self.assertIn("777", bot.client.sent[-1][1])
+        self.assertTrue(automod.State(self.dir / "state.json").is_ignored(777))
+        self.run_cmd(bot, ".amign", reply_to=777)
+        self.assertIn("уже", bot.client.sent[-1][1])
+        self.assertEqual(bot.state.ignored, [777])
+
+    def test_without_reply_gives_hint(self):
+        bot = self.make_bot('{"violations": []}')
+        self.run_cmd(bot, ".amign")
+        self.assertIn("ответом", bot.client.sent[-1][1])
+        self.assertEqual(bot.state.ignored, [])
+
+    def test_only_owner_and_not_self(self):
+        bot = self.make_bot('{"violations": []}')
+        self.run_cmd(bot, ".amign", reply_to=777, sender=999)
+        self.assertEqual(bot.state.ignored, [])
+        self.assertEqual(bot.client.sent, [])
+        self.run_cmd(bot, ".amign", reply_to=1)
+        self.assertEqual(bot.state.ignored, [])
+
+    def test_unignore_and_list(self):
+        bot = self.make_bot('{"violations": []}')
+        self.run_cmd(bot, ".amignlist")
+        self.assertIn("пуст", bot.client.sent[-1][1])
+        self.run_cmd(bot, ".amign", reply_to=777)
+        self.run_cmd(bot, ".amignlist")
+        self.assertIn("777", bot.client.sent[-1][1])
+        self.run_cmd(bot, ".amunign", reply_to=777)
+        self.assertEqual(bot.state.ignored, [])
+        self.run_cmd(bot, ".amunign", reply_to=777)
+        self.assertIn("не было", bot.client.sent[-1][1])
+
+    def test_ignored_messages_skip_everything(self):
+        bot = self.make_bot('{"violations": []}')
+        bot.state.ignore(1003)
+        asyncio.run(self.feed(bot, 30))
+        users = {m["user_id"] for m in bot.state.chat(-1001)["buffer"]}
+        self.assertNotIn(1003, users)
+        self.assertTrue(users)
+
+    def test_ignore_drops_buffered_messages(self):
+        bot = self.make_bot('{"violations": []}')
+        asyncio.run(self.feed(bot, 14))
+        self.assertTrue(any(m["user_id"] == 1003 for m in bot.state.chat(-1001)["buffer"]))
+        self.run_cmd(bot, ".amign", reply_to=1003)
+        self.assertFalse(any(m["user_id"] == 1003 for m in bot.state.chat(-1001)["buffer"]))
+
+    def test_ignored_bot_ad_not_deleted(self):
+        bot = self.make_bot('{"violations": []}')
+        bot.settings = {**bot.settings, "delete_bot_ads": True}
+        bot.state.ignore(555)
+        asyncio.run(bot.on_message(fake_event(-1001, 5, 555, "заходи t.me/+AbCdEf12345")))
+        self.assertEqual(bot.client.deleted, [])
+        self.assertEqual(bot.client.sent, [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

@@ -10,6 +10,9 @@ Commands (written by the account owner in a group; the command message is delete
   .automod -d              remove automod from the chat completely (rules, buffer, settings)
   .context N               messages per check in this chat (10..500, default 100); no N shows it
   .ams                     check the last N messages right now
+  .amign                   (as a reply) ignore the author of that message in all chats
+  .amunign                 (as a reply) stop ignoring the author
+  .amignlist               show the ignore list
 
 Every BATCH_SIZE new messages in an enabled chat go to a tool-less LLM together with
 the rules. Violations come back as JSON; each punishment is posted as a reply to the
@@ -233,6 +236,7 @@ COMMAND = re.compile(r"^\.automod(?:\s+(.*))?$", re.IGNORECASE | re.DOTALL)
 CONTEXT_COMMAND = re.compile(r"^\.context(?:\s+(\S+))?$", re.IGNORECASE)
 AMS_COMMAND = re.compile(r"^\.ams$", re.IGNORECASE)
 AMT_COMMAND = re.compile(r"^\.amt$", re.IGNORECASE)
+IGN_COMMAND = re.compile(r"^\.am(ign|unign|ignlist)$", re.IGNORECASE)
 AMT_TEXT = "Тестовое сообщение: Найдено нарушение!"
 DELETE_ARG = re.compile(r"(?:^|\s)(?:-d|--delete)(?=\s|$)")
 RULES_ARG = re.compile(r"(?:^|\s)-r(?:=|\s+)(\S+)")
@@ -260,6 +264,9 @@ def parse_command(text):
         return {"action": "ams", "rules": None}
     if AMT_COMMAND.match(text):
         return {"action": "amt", "rules": None}
+    found = IGN_COMMAND.match(text)
+    if found:
+        return {"action": found.group(1).lower(), "rules": None}
     match = COMMAND.match(text)
     if not match:
         return None
@@ -1188,8 +1195,11 @@ class State:
     def __init__(self, path=STATE):
         self.path = Path(path)
         self.chats = {}
+        self.ignored = []  # sender ids automod never reacts to (all chats)
         if self.path.exists():
-            self.chats = json.loads(self.path.read_text(encoding="utf-8")).get("chats", {})
+            data = json.loads(self.path.read_text(encoding="utf-8"))
+            self.chats = data.get("chats", {})
+            self.ignored = [int(i) for i in data.get("ignored", []) if str(i).lstrip("-").isdigit()]
 
     def chat(self, chat_id):
         return self.chats.setdefault(str(chat_id), {
@@ -1199,6 +1209,26 @@ class State:
 
     def enabled(self, chat_id):
         return self.chats.get(str(chat_id), {}).get("enabled", False)
+
+    def is_ignored(self, user_id):
+        return bool(user_id) and user_id in self.ignored
+
+    def ignore(self, user_id):
+        """Add to the ignore list and drop the user's buffered messages; False if already there."""
+        if user_id in self.ignored:
+            return False
+        self.ignored.append(user_id)
+        for chat in self.chats.values():
+            chat["buffer"] = [m for m in chat.get("buffer", []) if m.get("user_id") != user_id]
+        self.save()
+        return True
+
+    def unignore(self, user_id):
+        if user_id not in self.ignored:
+            return False
+        self.ignored.remove(user_id)
+        self.save()
+        return True
 
     def add_message(self, chat_id, message):
         """Append to the buffer; returns the buffer length."""
@@ -1222,7 +1252,7 @@ class State:
     def save(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps({"chats": self.chats}, ensure_ascii=False), encoding="utf-8")
+        tmp.write_text(json.dumps({"chats": self.chats, "ignored": self.ignored}, ensure_ascii=False), encoding="utf-8")
         tmp.replace(self.path)
 
 
@@ -1483,7 +1513,12 @@ class Automod:
             return
         chat_id = event.chat_id
         try:
-            report = await self.handle_command(chat_id, command)
+            target = None
+            if command["action"] in ("ign", "unign"):
+                reply = await event.get_reply_message()
+                target = getattr(reply, "sender_id", None) if reply else None
+                command = {**command, "no_reply": reply is None}
+            report = await self.handle_command(chat_id, command, target)
         except RuntimeError as error:
             log.warning("command failed: %s", error)
             report = f"automod: ошибка — {error}"
@@ -1496,8 +1531,13 @@ class Automod:
             log.warning("cannot delete the command message")
         await self.report(chat_id, report)
 
-    async def handle_command(self, chat_id, command):
+    async def handle_command(self, chat_id, command, target=None):
         action = command["action"]
+        if action in ("ign", "unign"):
+            return self.ignore_command(action, command, target)
+        if action == "ignlist":
+            ids = ", ".join(str(i) for i in self.state.ignored)
+            return f"automod: игнор-лист — {ids}." if ids else "automod: игнор-лист пуст."
         if action == "delete":
             self.state.chats.pop(str(chat_id), None)
             self.admin_cache.pop(chat_id, None)
@@ -1522,7 +1562,9 @@ class Automod:
             return ("automod: команды — .automod [-r=ссылка на правила], "
                     ".automod off, .automod status, .automod -d (удалить из чата), "
                     ".context N (сообщений в проверке), .ams (проверить сейчас), "
-                    ".amt (тест: ответить на найденные нарушения, без наказаний)")
+                    ".amt (тест: ответить на найденные нарушения, без наказаний), "
+                    ".amign / .amunign (ответом на сообщение: игнорировать / вернуть автора), "
+                    ".amignlist (игнор-лист)")
         if action == "off":
             chat["enabled"] = False
             self.state.save()
@@ -1545,6 +1587,24 @@ class Automod:
         if rights_problem:
             lines.append(rights_problem)
         return "\n".join(lines)
+
+    def ignore_command(self, action, command, target):
+        name = ".amign" if action == "ign" else ".amunign"
+        if command.get("no_reply"):
+            return f"automod: {name} нужно отправить ответом (reply) на сообщение автора."
+        if not target:
+            return f"automod: у этого сообщения нет автора-пользователя, {name} не применить."
+        if self.is_owner(target):
+            return "automod: себя и владельцев игнорировать не нужно."
+        if action == "ign":
+            added = self.state.ignore(target)
+            log_action({"action": "ignore", "user": target, "new": added})
+            return (f"automod: {target} добавлен в игнор, его сообщения не проверяются." if added
+                    else f"automod: {target} уже в игнор-листе.")
+        removed = self.state.unignore(target)
+        log_action({"action": "unignore", "user": target, "found": removed})
+        return (f"automod: {target} убран из игнора." if removed
+                else f"automod: {target} не было в игнор-листе.")
 
     def status_text(self, chat_id):
         chat = self.state.chat(chat_id)
@@ -1648,6 +1708,8 @@ class Automod:
     # ---- messages and batches
 
     async def on_message(self, event):
+        if self.state.is_ignored(event.sender_id):
+            return
         chat_id = event.chat_id
         if not event.is_group or not self.state.enabled(chat_id):
             return
@@ -1752,6 +1814,8 @@ class Automod:
                 except Exception:
                     sender = None
                 user_id = getattr(message, "sender_id", None) or 0
+                if self.state.is_ignored(user_id):
+                    continue
                 entries.append(self.build_entry(message, sender, user_id))
                 try:
                     features = await ad_features(message, sender)
@@ -1800,7 +1864,7 @@ class Automod:
                     if parse_command(text) or not (text or getattr(message, "media", None)):
                         continue
                     user_id = getattr(message, "sender_id", None) or 0
-                    if user_id == self.me_id:
+                    if user_id == self.me_id or self.state.is_ignored(user_id):
                         continue
                     sender = await message.get_sender()
                     fetched.append(self.build_entry(message, sender, user_id))
@@ -2159,7 +2223,7 @@ async def run():
     bot = Automod(client, State(), me.id, settings, backend)
     owners = [me.id, *settings["owner_ids"]]
     client.add_event_handler(bot.on_command, events.NewMessage(
-        from_users=owners, pattern=r"(?i)^\s*\.(?:automod|context|ams|amt)\b"))
+        from_users=owners, pattern=r"(?i)^\s*\.(?:automod|context|ams|amt|amign|amunign|amignlist)\b"))
     client.add_event_handler(bot.on_message, events.NewMessage())
     enabled = [cid for cid, chat in bot.state.chats.items() if chat.get("enabled")]
     log.info("running as %s, backend %s, enabled in %d chats%s", me.id, backend.name,
