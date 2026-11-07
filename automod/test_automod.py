@@ -545,7 +545,7 @@ class BotAds(unittest.TestCase):
         self.assertIsNone(self.ad("ок", sender_is_bot=True, sender_username="iris_cm_bot"))
         self.assertIsNone(self.ad("новости дня", fwd_kind="channel"))
         self.assertIsNone(self.ad("смешной стикер", via_bot="sticker", buttons=[]))
-        self.assertIsNone(self.ad("пиши на почту me@robot.com"))
+        self.assertIsNone(self.ad("пиши на почту v1pach@yandex.com"))
         self.assertIsNone(automod.detect_bot_ad({"text": "@my_helper_bot"}, ["my_helper_bot"]))
 
     def test_features(self):

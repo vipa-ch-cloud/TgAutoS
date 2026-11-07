@@ -1,12 +1,12 @@
 {
   "id": "autoresponder",
   "name": "autoresponder",
-  "version": "1.1",
-  "build": 2,
+  "version": "1.1.1",
+  "build": 3,
   "author": "vipa-ch-cloud",
   "entry": "autoresponder.py",
-  "description_en": "Auto-responder for a personal Telegram account: replies in private chats and chosen groups through a tool-less language model.",
-  "description_ru": "Автоответчик для личного аккаунта Telegram: отвечает в личке и выбранных группах через языковую модель без инструментов.",
+  "description_en": "Replies for you in private chats and chosen Telegram groups through a tool-less language model.",
+  "description_ru": "Отвечает за вас в личке и выбранных группах Telegram через языковую модель без инструментов.",
   "tags": [
     "autoreply",
     "llm",
@@ -29,6 +29,13 @@
     ],
     "files": "config dir only (api.json, proxy.json, groups.json, profile.json, history)"
   },
-  "changelog_en": "Config schema and reply-handling improvements, updated tests.",
-  "changelog_ru": "Улучшения схемы настроек и обработки ответов, обновлены тесты."
+  "changelog_en": "Store card metadata (title, icon, color, repo, date).",
+  "changelog_ru": "Метаданные карточки магазина (название, значок, цвет, репозиторий, дата).",
+  "title_ru": "Автоответчик",
+  "title_en": "Auto Responder",
+  "icon": "chat_reply",
+  "color": "#0F6B7A",
+  "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
+  "published": "2026-11-07",
+  "homepage": "https://github.com/vipa-ch-cloud/TgAutoS"
 }

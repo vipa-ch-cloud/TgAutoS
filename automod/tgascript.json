@@ -1,12 +1,12 @@
 {
   "id": "automod",
   "name": "automod",
-  "version": "1.1",
-  "build": 2,
+  "version": "1.1.1",
+  "build": 3,
   "author": "vipa-ch-cloud",
   "entry": "automod.py",
-  "description_en": "LLM-based chat moderation for Telegram groups: sends message batches plus chat rules to a language model and asks the Iris chat manager to punish offenders. The model gets no tools.",
-  "description_ru": "Автомодерация групповых чатов Telegram с помощью LLM: пачки сообщений и правила чата уходят модели, наказания выполняет чат-менеджер Ирис. Модели не даются инструменты.",
+  "description_en": "Keeps Telegram groups tidy: an LLM reads messages against the chat rules and asks Iris to punish offenders.",
+  "description_ru": "Следит за порядком в группах Telegram: LLM читает сообщения по правилам чата и просит Ирис наказать нарушителей.",
   "tags": [
     "moderation",
     "llm",
@@ -33,6 +33,13 @@
     ],
     "files": "config dir only (api.json, proxy.json, automod.json, state)"
   },
-  "changelog_en": "Deterministic ad prefilter (invite links, promo channels/bots, channel forwards), .amt test run, delete_flagged_ads, bot reports stay in chat, new config options.",
-  "changelog_ru": "Детерминированный фильтр рекламы (ссылки-приглашения, рекламные каналы/боты, пересылки), тестовый прогон .amt, delete_flagged_ads, отчёты бота остаются в чате, новые настройки."
+  "changelog_en": "Store card metadata (title, icon, color, repo, date).",
+  "changelog_ru": "Метаданные карточки магазина (название, значок, цвет, репозиторий, дата).",
+  "title_ru": "Автомодератор",
+  "title_en": "Auto Moderator",
+  "icon": "shield",
+  "color": "#3F7D2A",
+  "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
+  "published": "2026-11-07",
+  "homepage": "https://github.com/vipa-ch-cloud/TgAutoS"
 }

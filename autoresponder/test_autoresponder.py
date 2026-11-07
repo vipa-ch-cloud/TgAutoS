@@ -549,7 +549,7 @@ class Style(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(bot.style_stats([])["messages"], 0)
 
     def test_sensitive_messages_skipped(self):
-        for text in ("код 123456", "https://x.y", "t.me/abc", "a@b.c", ".start", "", None):
+        for text in ("код 123456", "https://x.y", "t.me/abc", "v1pach@yandex.com", ".start", "", None):
             self.assertFalse(bot.usable_for_style(text), text)
         self.assertTrue(bot.usable_for_style("ща буду"))
 
