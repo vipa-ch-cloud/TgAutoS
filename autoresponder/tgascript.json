@@ -1,8 +1,8 @@
 {
   "id": "autoresponder",
   "name": "autoresponder",
-  "version": "1.1.1",
-  "build": 3,
+  "version": "1.2.0",
+  "build": 4,
   "author": "vipa-ch-cloud",
   "entry": "autoresponder.py",
   "description_en": "Replies for you in private chats and chosen Telegram groups through a tool-less language model.",
@@ -29,8 +29,8 @@
     ],
     "files": "config dir only (api.json, proxy.json, groups.json, profile.json, history)"
   },
-  "changelog_en": "Store card metadata (title, icon, color, repo, date).",
-  "changelog_ru": "Метаданные карточки магазина (название, значок, цвет, репозиторий, дата).",
+  "changelog_en": "Style analysis from the app: choose chats, review and edit the guide before saving (style-chats / style-draft).",
+  "changelog_ru": "Анализ стиля из приложения: выбор чатов, правка описания перед сохранением (style-chats / style-draft).",
   "title_ru": "Автоответчик",
   "title_en": "Auto Responder",
   "icon": "chat_reply",

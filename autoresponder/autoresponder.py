@@ -27,6 +27,8 @@ Usage:
   python autoresponder.py run            start the bot
   python autoresponder.py analyze-style  build the style guide for `.start imit`
   python autoresponder.py compact-style  shorten the stored style guide
+  python autoresponder.py style-chats    list chats for the app's style analysis (style_chats.json)
+  python autoresponder.py style-draft    analyse chosen chats into style_draft.json (app UI)
 
 Paths (env overrides, for an Android app with embedded Python):
   AUTORESPONDER_CONFIG_DIR  api.json, proxy.json, groups.json, profile.json
@@ -1152,6 +1154,19 @@ async def collect_own_messages(client, me_id, matcher):
     return messages[:STYLE_MESSAGES_TOTAL], chats
 
 
+async def collect_chat_messages(client, entities, limit=STYLE_MESSAGES_PER_CHAT):
+    """The owner's plain text from explicitly chosen chats (no folder filter)."""
+    messages = []
+    for entity in entities:
+        async for message in client.iter_messages(
+                entity, from_user="me", limit=limit, offset_date=BOT_FIRST_RUN):
+            if message.fwd_from is None and usable_for_style(message.message):
+                messages.append(message.message.strip())
+        if len(messages) >= STYLE_MESSAGES_TOTAL:
+            break
+    return messages[:STYLE_MESSAGES_TOTAL]
+
+
 async def rephrase_pass(text):
     """Turn the owner's "tell them that..." into a third-person sentence."""
     return await run_llm(PASS_PROMPT, json.dumps({"просьба": text}, ensure_ascii=False))
@@ -1728,6 +1743,64 @@ async def analyze_style():
     await compact_style()
 
 
+STYLE_CHATS_FILE = "style_chats.json"
+STYLE_REQUEST_FILE = "style_request.json"
+STYLE_DRAFT_FILE = "style_draft.json"
+STYLE_MIN_MESSAGES = 20
+
+
+async def list_style_chats():
+    """App UI step 1: private chats to choose from -> DATA_DIR/style_chats.json."""
+    client = await connect_existing()
+    me = await client.get_me()
+    matcher = FolderMatcher(client)
+    chats = []
+    async for dialog in client.iter_dialogs(limit=300):
+        entity = dialog.entity
+        if not dialog.is_user or entity.id in (me.id, SERVICE_ID) or entity.bot or entity.deleted:
+            continue
+        name = " ".join(filter(None, [entity.first_name, entity.last_name])) or entity.username or str(entity.id)
+        chats.append({"id": entity.id, "name": name, "in_folder": bool(await matcher(entity))})
+    await client.disconnect()
+    (DATA_DIR / STYLE_CHATS_FILE).write_text(json.dumps(chats, ensure_ascii=False))
+    print(f"Чатов для выбора: {len(chats)}")
+
+
+async def style_draft():
+    """App UI step 2: read the owner's messages from the chosen chats and write a draft
+    (DATA_DIR/style_draft.json); style.json is changed only by the app after the user edits it."""
+    draft = DATA_DIR / STYLE_DRAFT_FILE
+    draft.unlink(missing_ok=True)
+    try:
+        request = json.loads((DATA_DIR / STYLE_REQUEST_FILE).read_text())
+        ids = [int(i) for i in request["chats"]]
+        per_chat = max(10, min(int(request.get("per_chat", 200)), STYLE_MESSAGES_PER_CHAT))
+    except (OSError, ValueError, KeyError, TypeError):
+        sys.exit("Нет запроса анализа стиля (style_request.json).")
+    if not ids:
+        sys.exit("Не выбрано ни одного чата.")
+    client = await connect_existing()
+    entities = []
+    for chat_id in ids[:STYLE_CHATS]:
+        try:
+            entities.append(await client.get_entity(chat_id))
+        except Exception as error:  # noqa: BLE001 - a missing chat must not stop the rest
+            log.warning("chat %s skipped: %s", chat_id, error)
+    messages = await collect_chat_messages(client, entities, per_chat)
+    await client.disconnect()
+    if len(messages) < STYLE_MIN_MESSAGES:
+        sys.exit(f"Мало сообщений для анализа: {len(messages)} из {len(entities)} чатов (нужно {STYLE_MIN_MESSAGES}).")
+    print(f"Собрано сообщений: {len(messages)} из чатов: {len(entities)}. Анализирую...")
+    full = await run_llm(STYLE_PROMPT, "\n".join(json.dumps(m, ensure_ascii=False) for m in messages),
+                         style=True)
+    guide = await run_llm(COMPACT_STYLE_PROMPT, full, style=True) or full
+    result = {"stats": style_stats(messages), "guide": guide, "full_guide": full,
+              "messages": len(messages), "chats": len(entities)}
+    draft.touch(mode=0o600)
+    draft.write_text(json.dumps(result, ensure_ascii=False))
+    print("Черновик стиля готов:", json.dumps(result["stats"], ensure_ascii=False))
+
+
 async def run():
     """Non-interactive: needs an existing session, never reads stdin (Android app)."""
     try:
@@ -1773,8 +1846,13 @@ def main(argv=None):
         asyncio.run(analyze_style())
     elif args == ["compact-style"]:
         asyncio.run(compact_style())
+    elif args == ["style-chats"]:
+        asyncio.run(list_style_chats())
+    elif args == ["style-draft"]:
+        asyncio.run(style_draft())
     else:
-        sys.exit("Использование: python autoresponder.py login | run | analyze-style | compact-style")
+        sys.exit("Использование: python autoresponder.py login | run | analyze-style | compact-style "
+                 "| style-chats | style-draft")
 
 
 if __name__ == "__main__":

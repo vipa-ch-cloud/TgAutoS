@@ -549,7 +549,7 @@ class Style(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(bot.style_stats([])["messages"], 0)
 
     def test_sensitive_messages_skipped(self):
-        for text in ("код 123456", "https://x.y", "t.me/abc", "v1pach@yandex.com", ".start", "", None):
+        for text in ("код 123456", "https://x.y", "t.me/abc", "a@b.c", ".start", "", None):
             self.assertFalse(bot.usable_for_style(text), text)
         self.assertTrue(bot.usable_for_style("ща буду"))
 
@@ -579,6 +579,61 @@ class Style(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(calls[0][1]["offset_date"], bot.BOT_FIRST_RUN)
         self.assertEqual(calls[0][1]["from_user"], "me")
 
+
+
+from unittest.mock import patch  # noqa: E402
+import json  # noqa: E402
+
+
+class StyleDraft(unittest.IsolatedAsyncioTestCase):
+    async def test_collect_chat_messages_filters(self):
+        async def messages(entity, **kwargs):
+            self.assertEqual(kwargs["from_user"], "me")
+            yield NS(message="ща буду", fwd_from=None)
+            yield NS(message="переслано", fwd_from=object())
+            yield NS(message="код 123456", fwd_from=None)
+        out = await bot.collect_chat_messages(NS(iter_messages=messages), [NS(id=1), NS(id=2)], 50)
+        self.assertEqual(out, ["ща буду", "ща буду"])
+
+    async def test_style_draft_writes_draft_not_style(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            data = Path(tmp)
+            (data / bot.STYLE_REQUEST_FILE).write_text(json.dumps({"chats": [1], "per_chat": 50}))
+
+            async def messages(entity, **kwargs):
+                for i in range(30):
+                    yield NS(message=f"сообщение {i}", fwd_from=None)
+
+            async def get_entity(chat_id):
+                return NS(id=chat_id)
+
+            client = NS(iter_messages=messages, get_entity=get_entity, disconnect=AsyncMock())
+            with patch.object(bot, "DATA_DIR", data), patch.object(bot, "STYLE", data / "style.json"), \
+                    patch.object(bot, "connect_existing", AsyncMock(return_value=client)), \
+                    patch.object(bot, "run_llm", AsyncMock(return_value="стиль")):
+                await bot.style_draft()
+            draft = json.loads((data / bot.STYLE_DRAFT_FILE).read_text())
+            self.assertEqual(draft["guide"], "стиль")
+            self.assertEqual(draft["messages"], 30)
+            self.assertFalse((data / "style.json").exists())
+
+    async def test_style_draft_needs_enough_messages(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            data = Path(tmp)
+            (data / bot.STYLE_REQUEST_FILE).write_text(json.dumps({"chats": [1]}))
+
+            async def messages(entity, **kwargs):
+                yield NS(message="одно", fwd_from=None)
+
+            client = NS(iter_messages=messages, get_entity=AsyncMock(return_value=NS(id=1)), disconnect=AsyncMock())
+            with patch.object(bot, "DATA_DIR", data), \
+                    patch.object(bot, "connect_existing", AsyncMock(return_value=client)):
+                with self.assertRaises(SystemExit):
+                    await bot.style_draft()
 
 class Ignore(Base):
     async def test_ignored_chat_gets_nothing_and_is_not_relayed(self):

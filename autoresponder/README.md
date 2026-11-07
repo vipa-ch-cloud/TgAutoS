@@ -31,6 +31,8 @@ python autoresponder.py login          # только вне TeleScript, вхо�
 python autoresponder.py run            # запуск бота, stdin не нужен
 python autoresponder.py analyze-style  # собрать описание стиля владельца для .start imit
 python autoresponder.py compact-style  # сократить сохранённое описание стиля
+python autoresponder.py style-chats    # (для приложения) список чатов -> style_chats.json
+python autoresponder.py style-draft    # (для приложения) черновик стиля по выбранным чатам -> style_draft.json
 ```
 
 Без telethon запуск невозможен. В TeleScript отдельный вход не нужен: используется его сессия. Вне приложения вход только по QR, по номеру телефона его нет.
