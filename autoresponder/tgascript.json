@@ -1,0 +1,41 @@
+{
+  "id": "autoresponder",
+  "name": "autoresponder",
+  "version": "1.1.1",
+  "build": 3,
+  "author": "vipa-ch-cloud",
+  "entry": "autoresponder.py",
+  "description_en": "Replies for you in private chats and chosen Telegram groups through a tool-less language model.",
+  "description_ru": "Отвечает за вас в личке и выбранных группах Telegram через языковую модель без инструментов.",
+  "tags": [
+    "autoreply",
+    "llm",
+    "telegram"
+  ],
+  "permissions": {
+    "telegram": [
+      "read incoming messages and history",
+      "send messages/replies"
+    ],
+    "network": [
+      "api.anthropic.com",
+      "OpenAI-compatible base_url set by user (may be localhost)"
+    ],
+    "llm": true,
+    "subprocess": [
+      "claude",
+      "gemini",
+      "codex CLI (optional, if installed)"
+    ],
+    "files": "config dir only (api.json, proxy.json, groups.json, profile.json, history)"
+  },
+  "changelog_en": "Store card metadata (title, icon, color, repo, date).",
+  "changelog_ru": "Метаданные карточки магазина (название, значок, цвет, репозиторий, дата).",
+  "title_ru": "Автоответчик",
+  "title_en": "Auto Responder",
+  "icon": "chat_reply",
+  "color": "#0F6B7A",
+  "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
+  "published": "2026-11-07",
+  "homepage": "https://github.com/vipa-ch-cloud/TgAutoS"
+}

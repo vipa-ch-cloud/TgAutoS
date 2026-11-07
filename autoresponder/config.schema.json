@@ -1,8 +1,8 @@
 {
   "version": 1,
   "file": "profile.json",
-  "note": "Настройки читаются при запуске: изменения применятся после перезапуска скрипта. Команда .reload сбрасывает только счётчики лимитов.",
-  "note_en": "Settings are read at startup: changes apply after the script is restarted. The .reload command only resets the rate-limit counters.",
+  "note": "Настройки читаются при запуске: изменения применятся после перезапуска скрипта. Команда .reload сбрасывает только счётчики лимитов. Группы пересылок и памяти читаются из groups.json.",
+  "note_en": "Settings are read at startup: changes apply after the script is restarted. The .reload command only resets the rate-limit counters. Forward and memory groups are read from groups.json.",
   "fields": [
     {
       "section": "Профиль",
@@ -72,8 +72,43 @@
       "max": 100000
     },
     {
+      "section": "Пересылки и память",
+      "section_en": "Forwards and memory"
+    },
+    {
+      "key": "relay_invite",
+      "title": "Группа пересылок",
+      "title_en": "Forward group",
+      "type": "string",
+      "default": "",
+      "description": "Ссылка-приглашение или id группы, куда копируются входящие. Пусто: копии идут в «Избранное». Прямой ответ: ответьте на копию в этой группе или в «Избранном», и текст уйдёт собеседнику.",
+      "description_en": "Invite link or id of the group that receives copies of incoming messages. Empty: copies go to Saved Messages. Direct reply: reply to a copy in that group or in Saved Messages and the text is sent to the contact.",
+      "file": "groups.json"
+    },
+    {
+      "key": "memory_invite",
+      "title": "Папка памяти (чат памяти)",
+      "title_en": "Memory chat",
+      "type": "string",
+      "default": "",
+      "description": "Ссылка-приглашение или id чата, где хранятся заметки о собеседниках.",
+      "description_en": "Invite link or id of the chat holding notes about contacts.",
+      "file": "groups.json"
+    },
+    {
       "section": "Контекст",
       "section_en": "Context"
+    },
+    {
+      "key": "history_fetch",
+      "title": "Сообщений из Telegram",
+      "title_en": "Messages from Telegram",
+      "type": "int",
+      "default": 30,
+      "description": "Сколько реальных последних сообщений читать из чата перед ответом (0: только сохранённая история). В журнале: «history: N messages».",
+      "description_en": "How many real latest messages to read before replying (0: saved history only). Logged as \"history: N messages\".",
+      "min": 0,
+      "max": 200
     },
     {
       "key": "history_keep",

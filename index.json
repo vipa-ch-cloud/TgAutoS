@@ -1,0 +1,100 @@
+{
+ "format": "tgastore/1",
+ "scripts": [
+  {
+   "author": "vipa-ch-cloud",
+   "changelog_en": "Store card metadata (title, icon, color, repo, date).",
+   "changelog_ru": "Метаданные карточки магазина (название, значок, цвет, репозиторий, дата).",
+   "color": "#3F7D2A",
+   "description_en": "Keeps Telegram groups tidy: an LLM reads messages against the chat rules and asks Iris to punish offenders.",
+   "description_ru": "Следит за порядком в группах Telegram: LLM читает сообщения по правилам чата и просит Ирис наказать нарушителей.",
+   "homepage": "https://github.com/vipa-ch-cloud/TgAutoS",
+   "icon": "shield",
+   "id": "automod",
+   "name": "automod",
+   "official": true,
+   "permissions": {
+    "files": "config dir only (api.json, proxy.json, automod.json, state)",
+    "llm": true,
+    "network": [
+     "api.anthropic.com",
+     "api.telegra.ph",
+     "any http(s) page given as rules link",
+     "OpenAI-compatible base_url set by user (may be localhost)"
+    ],
+    "subprocess": [
+     "claude",
+     "gemini",
+     "codex CLI (optional, if installed)"
+    ],
+    "telegram": [
+     "read group messages",
+     "send messages/replies and Iris commands",
+     "delete messages",
+     "read chat admin rights"
+    ]
+   },
+   "published": "2026-11-07",
+   "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
+   "sha256": "750246e66b8a886b9c179c7bc3e13ac32ecf93580e54408c1c6a7b17e5b11a5b",
+   "signed": true,
+   "size": 41865,
+   "tags": [
+    "moderation",
+    "llm",
+    "telegram"
+   ],
+   "title_en": "Auto Moderator",
+   "title_ru": "Автомодератор",
+   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/automod-1.1.1.tgascript",
+   "verified": true,
+   "version": "1.1.1"
+  },
+  {
+   "author": "vipa-ch-cloud",
+   "changelog_en": "Store card metadata (title, icon, color, repo, date).",
+   "changelog_ru": "Метаданные карточки магазина (название, значок, цвет, репозиторий, дата).",
+   "color": "#0F6B7A",
+   "description_en": "Replies for you in private chats and chosen Telegram groups through a tool-less language model.",
+   "description_ru": "Отвечает за вас в личке и выбранных группах Telegram через языковую модель без инструментов.",
+   "homepage": "https://github.com/vipa-ch-cloud/TgAutoS",
+   "icon": "chat_reply",
+   "id": "autoresponder",
+   "name": "autoresponder",
+   "official": true,
+   "permissions": {
+    "files": "config dir only (api.json, proxy.json, groups.json, profile.json, history)",
+    "llm": true,
+    "network": [
+     "api.anthropic.com",
+     "OpenAI-compatible base_url set by user (may be localhost)"
+    ],
+    "subprocess": [
+     "claude",
+     "gemini",
+     "codex CLI (optional, if installed)"
+    ],
+    "telegram": [
+     "read incoming messages and history",
+     "send messages/replies"
+    ]
+   },
+   "published": "2026-11-07",
+   "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
+   "sha256": "9c2f99efe1e5eabfddfcb5200e49d1969ca85b5907bb250fe14ee31f0d091f57",
+   "signed": true,
+   "size": 32799,
+   "tags": [
+    "autoreply",
+    "llm",
+    "telegram"
+   ],
+   "title_en": "Auto Responder",
+   "title_ru": "Автоответчик",
+   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/autoresponder-1.1.1.tgascript",
+   "verified": true,
+   "version": "1.1.1"
+  }
+ ],
+ "updated": "2026-11-07T16:07:20Z"
+}

@@ -96,6 +96,7 @@ HISTORY = 40  # upper bound of lines stored per chat
 HISTORY_ROLL_AT = 16  # at this many lines the oldest go into a summary
 HISTORY_KEEP = 8  # lines sent to the model word for word
 HISTORY_LINE = 300  # characters kept of each line
+HISTORY_FETCH = 30  # real messages read from Telegram before each reply (0 = only the saved state)
 LLM_INPUT = 1000  # characters of an incoming message shown to the model
 NOTES_COMPACT = 1200  # longer notes get compressed
 RELAY_MAP_SIZE = 5000
@@ -161,6 +162,7 @@ DAY_LIMIT = PROFILE.get("day_limit", DAY_LIMIT)
 HISTORY_KEEP = PROFILE.get("history_keep", HISTORY_KEEP)
 HISTORY_ROLL_AT = PROFILE.get("history_roll_at", HISTORY_ROLL_AT)
 HISTORY_LINE = PROFILE.get("history_line", HISTORY_LINE)
+HISTORY_FETCH = PROFILE.get("history_fetch", HISTORY_FETCH)
 LLM_INPUT = PROFILE.get("llm_input", LLM_INPUT)
 
 
@@ -173,6 +175,58 @@ def voice_replies(profile=None):
     return replies or list(DEFAULT_VOICE_REPLIES)
 
 log = logging.getLogger("autoresponder")
+
+
+# --- Telethon reconnect noise -------------------------------------------------
+# When the network drops, Telethon logs a stream of lines ("Server closed the connection: 0 bytes
+# read...", "Connect call failed (...)", "Attempt N at connecting failed"). They are collapsed
+# into one rate-limited line plus one "restored" line; every other record passes untouched.
+_NET_NOISE = re.compile(
+    r"Server closed the connection|Connect call failed|Attempt \d+ at connecting|"
+    r"Failed reconnection attempt|Automatic reconnection failed|Connection to .* failed|"
+    r"Connection closed while|Connection reset|Broken pipe|bytes read on a total|"
+    r"Network is unreachable|Connect call failed|Retrying|Reconnecting|Disconnecting from|"
+    r"Connecting to|Disconnection from|Starting send loop|Starting receive loop|"
+    r"send loop|receive loop|loop (?:stopped|ended)|Closing current connection", re.I)
+_NET_RESTORED = re.compile(r"Connection to .* complete", re.I)
+
+
+class ReconnectFilter(logging.Filter):
+    """Handler filter: folds Telethon's reconnect spam into a single status line."""
+
+    def __init__(self, interval=60.0, clock=time.monotonic):
+        super().__init__()
+        self.interval = interval
+        self.clock = clock
+        self.lost = False
+        self._last = 0.0
+
+    def filter(self, record):
+        if not record.name.startswith("telethon"):
+            return True
+        text = record.getMessage()
+        if _NET_RESTORED.search(text):
+            if self.lost:
+                self.lost = False
+                log.warning("связь с Telegram восстановлена")
+            return False
+        if record.exc_info is None and (record.levelno < logging.WARNING or _NET_NOISE.search(text)):
+            if record.levelno >= logging.WARNING:
+                now = self.clock()
+                if not self.lost or now - self._last >= self.interval:
+                    self.lost, self._last = True, now
+                    log.warning("нет связи с Telegram, переподключение…")
+            return False
+        return True
+
+
+def install_reconnect_filter():
+    """Attach the filter to the root handlers and let Telethon's INFO records reach it."""
+    flt = ReconnectFilter()
+    for handler in logging.getLogger().handlers:
+        handler.addFilter(flt)
+    logging.getLogger("telethon").setLevel(logging.INFO)
+    return flt
 
 
 def is_voice(message):
@@ -597,11 +651,15 @@ class OpenAIBackend:
             return await asyncio.to_thread(self._post, system_prompt, user_text)
 
 
+CODEX_AUTH = re.compile(r"codex login|not logged in|unauthorized|\b401\b|invalid_api_key", re.I)
+
+
 class CodexBackend:
     """Codex CLI (ChatGPT login), run read-only with no approvals, in the empty sandbox.
 
-    argv: codex exec --sandbox read-only --ephemeral --skip-git-repo-check
-          -c approval_policy="never" [-m <model>] -     (prompt on stdin; the answer is stdout)
+    argv: codex exec --sandbox read-only --ephemeral --skip-git-repo-check [-m <model>] -
+          (prompt on stdin; the answer is stdout). No approval flag: `codex exec` is non-interactive
+          and never asks, so the former `-c approval_policy="never"` was redundant and is gone.
     Sources: https://learn.chatgpt.com/docs/non-interactive-mode.md (exec, stdin "-", --sandbox,
     --ephemeral, --skip-git-repo-check, final message on stdout) and
     https://developers.openai.com/codex/cli/reference (-m, -c).
@@ -614,8 +672,7 @@ class CodexBackend:
         self.sandbox = Path(sandbox)
 
     def argv(self, binary="codex"):
-        argv = [binary, "exec", "--sandbox", "read-only", "--ephemeral", "--skip-git-repo-check",
-                "-c", 'approval_policy="never"']
+        argv = [binary, "exec", "--sandbox", "read-only", "--ephemeral", "--skip-git-repo-check"]
         if self.model:
             argv += ["-m", self.model]
         return argv + ["-"]
@@ -648,6 +705,8 @@ class CodexBackend:
             raise RuntimeError("LLM timeout")
         if proc.returncode != 0:
             detail = ((err or b"").decode(errors="replace") or out.decode(errors="replace"))[-300:]
+            if CODEX_AUTH.search(detail):
+                detail = "не авторизован: выполните `codex login` в Termux. " + detail
             raise classify_failure(f"codex exit {proc.returncode}: {detail}")
         reply = out.decode(errors="replace").strip()
         if not reply:
@@ -867,9 +926,11 @@ class State:
         self.history[chat_id].extend((role, text[:HISTORY_LINE]) for role, text in lines)
         self.save()
 
-    def context(self, chat_id):
-        """What the model sees: the summary of older lines, then recent ones."""
-        lines = list(self.history[chat_id])
+    def context(self, chat_id, lines=None):
+        """What the model sees: the summary of older lines, then recent ones.
+
+        lines: the real chat history read from Telegram; it replaces the saved lines."""
+        lines = list(self.history[chat_id]) if lines is None else list(lines)
         summary = self.summaries.get(str(chat_id))
         return [("сводка начала разговора", summary)] + lines if summary else lines
 
@@ -1131,6 +1192,34 @@ class Autoresponder:
         self.limit_notified = set()
         self.llm_slots = asyncio.Semaphore(int(os.environ.get("TG_LLM_SLOTS", "2")))
 
+    async def telegram_history(self, chat_id, before_id):
+        """Last HISTORY_FETCH real messages before before_id as (role, text), oldest first.
+
+        None when disabled or unreadable, so the caller falls back to the saved state."""
+        limit = int(HISTORY_FETCH or 0)
+        if limit <= 0:
+            return None
+        lines = []
+        try:
+            async for m in self.client.iter_messages(chat_id, limit=limit, offset_id=before_id):
+                if getattr(m, "action", None):
+                    continue
+                body = (getattr(m, "message", "") or "").strip()
+                out = bool(getattr(m, "out", False))
+                if out and body.startswith("."):
+                    continue  # owner commands
+                text = body or media_label(m)
+                if not text:
+                    continue
+                role = ("ассистент" if m.id in self.sent_ids else OWNER) if out else "собеседник"
+                lines.append((role, text[:HISTORY_LINE]))
+        except Exception as error:
+            log.warning("history: cannot read chat %s: %s", chat_id, error)
+            return None
+        lines.reverse()
+        log.info("history: %d messages from Telegram for chat %s", len(lines), chat_id)
+        return lines
+
     async def _reply_voice(self, chat_id, imitating):
         """Answer a voice message or video note with a canned phrase; silent over the limit."""
         text = random.choice(voice_replies())
@@ -1331,8 +1420,13 @@ class Autoresponder:
             try:
                 notes = await self.memory.read() if self.memory else ""
                 extra = (self.style,) if imitating else ()
+                fetched = await self.telegram_history(chat_id, event.message.id)
+                if fetched is None:
+                    log.info("history: %d saved messages for chat %s",
+                             len(self.state.history[chat_id]), chat_id)
                 async with self.llm_slots:
-                    reply = await self.llm(self.state.context(chat_id), text, notes, *extra)
+                    reply = await self.llm(self.state.context(chat_id, fetched), text, notes,
+                                           *extra)
             except Exception:
                 log.exception("LLM failed")
                 if imitating:
@@ -1377,6 +1471,13 @@ class Autoresponder:
             self.state.save()
             await self.client.send_message("me", note)
             return
+
+        if is_saved and event.message.reply_to_msg_id:
+            # Direct reply: the relay copy lives in Saved Messages when there is no relay group.
+            target = self.state.relay_target(event.message.reply_to_msg_id)
+            if target is not None and not command.startswith("."):
+                await self._answer_from_group(event, *target)
+                return
 
         if command.startswith(MEMORY_COMMAND):
             if is_saved or await self.in_folder(await event.get_chat()):
@@ -1660,7 +1761,7 @@ async def run():
 
 def main(argv=None):
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    logging.getLogger("telethon").setLevel(logging.WARNING)
+    install_reconnect_filter()
     args = sys.argv[1:] if argv is None else argv
     if TelegramClient is None:
         sys.exit("Нужен telethon: pip install telethon")

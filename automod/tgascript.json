@@ -1,0 +1,45 @@
+{
+  "id": "automod",
+  "name": "automod",
+  "version": "1.1.1",
+  "build": 3,
+  "author": "vipa-ch-cloud",
+  "entry": "automod.py",
+  "description_en": "Keeps Telegram groups tidy: an LLM reads messages against the chat rules and asks Iris to punish offenders.",
+  "description_ru": "Следит за порядком в группах Telegram: LLM читает сообщения по правилам чата и просит Ирис наказать нарушителей.",
+  "tags": [
+    "moderation",
+    "llm",
+    "telegram"
+  ],
+  "permissions": {
+    "telegram": [
+      "read group messages",
+      "send messages/replies and Iris commands",
+      "delete messages",
+      "read chat admin rights"
+    ],
+    "network": [
+      "api.anthropic.com",
+      "api.telegra.ph",
+      "any http(s) page given as rules link",
+      "OpenAI-compatible base_url set by user (may be localhost)"
+    ],
+    "llm": true,
+    "subprocess": [
+      "claude",
+      "gemini",
+      "codex CLI (optional, if installed)"
+    ],
+    "files": "config dir only (api.json, proxy.json, automod.json, state)"
+  },
+  "changelog_en": "Store card metadata (title, icon, color, repo, date).",
+  "changelog_ru": "Метаданные карточки магазина (название, значок, цвет, репозиторий, дата).",
+  "title_ru": "Автомодератор",
+  "title_en": "Auto Moderator",
+  "icon": "shield",
+  "color": "#3F7D2A",
+  "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
+  "published": "2026-11-07",
+  "homepage": "https://github.com/vipa-ch-cloud/TgAutoS"
+}

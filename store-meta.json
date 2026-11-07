@@ -1,0 +1,10 @@
+{
+  "automod": {
+    "official": true,
+    "verified": true
+  },
+  "autoresponder": {
+    "official": true,
+    "verified": true
+  }
+}

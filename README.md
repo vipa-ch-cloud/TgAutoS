@@ -19,3 +19,10 @@ api_id/api_hash, сессии и ключи LLM здесь не хранятся
 
 ## Лицензия
 Скрипты распространяются по лицензии GNU GPL v3 или новее (GPL-3.0-or-later). Полный текст в файле [LICENSE](LICENSE).
+
+## Магазин скриптов
+Приложение TgAuto читает подписанный каталог из этого репозитория: `index.json` + `index.json.sig` (ветка `main`), пакеты лежат в `packages/<id>-<версия>.tgascript`, флаги verified/official — в `store-meta.json`. Приложение доверяет только каталогу, подписанному ключом владельца.
+
+Предложить скрипт: откройте issue по форме «Submit a script» или PR с папкой скрипта. Владелец читает код (сетевые хосты, действия в Telegram, рискованные модули); принятый скрипт получает `verified` и попадает в каталог. Серверной загрузки нет. Непроверенные скрипты можно поставить из файла `.tgascript` с предупреждением.
+
+Сборка: `make_script_pkg.py <папка> --key <ключ> -o packages/<id>-<версия>.tgascript`, затем `make_store_index.py packages --base-url https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages --meta store-meta.json --key <ключ> -o .`
