@@ -3,8 +3,8 @@
  "scripts": [
   {
    "author": "vipa-ch-cloud",
-   "changelog_en": "Store card metadata (title, icon, color, repo, date).",
-   "changelog_ru": "Метаданные карточки магазина (название, значок, цвет, репозиторий, дата).",
+   "changelog_en": "New owner commands: .amign (reply to a message) ignores its author in all chats, .amunign removes the ignore, .amignlist shows the list.",
+   "changelog_ru": "Новые команды владельца: .amign (ответом на сообщение) игнорирует его автора во всех чатах, .amunign снимает игнор, .amignlist показывает список.",
    "color": "#3F7D2A",
    "description_en": "Keeps Telegram groups tidy: an LLM reads messages against the chat rules and asks Iris to punish offenders.",
    "description_ru": "Следит за порядком в группах Telegram: LLM читает сообщения по правилам чата и просит Ирис наказать нарушителей.",
@@ -36,9 +36,9 @@
    },
    "published": "2026-11-07",
    "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
-   "sha256": "750246e66b8a886b9c179c7bc3e13ac32ecf93580e54408c1c6a7b17e5b11a5b",
+   "sha256": "5f46c2cd87fcb3fb29a2cb9cccb7a1d751877e05090727297ff87d5dfd65ed5f",
    "signed": true,
-   "size": 41865,
+   "size": 43053,
    "tags": [
     "moderation",
     "llm",
@@ -46,9 +46,9 @@
    ],
    "title_en": "Auto Moderator",
    "title_ru": "Автомодератор",
-   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/automod-1.1.1.tgascript",
+   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/automod-1.1.2.tgascript",
    "verified": true,
-   "version": "1.1.1"
+   "version": "1.1.2"
   },
   {
    "author": "vipa-ch-cloud",
@@ -96,5 +96,5 @@
    "version": "1.2.0"
   }
  ],
- "updated": "2026-11-07T17:44:15Z"
+ "updated": "2026-11-07T20:38:49Z"
 }
