@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "file": "animatedsending.json",
+  "note": "Настройки читаются при каждой команде. Те же параметры меняются командой .anim set.",
+  "note_en": "Settings are re-read on every command. The same options can be changed with .anim set.",
+  "fields": [
+    {
+      "key": "enabled",
+      "title": "Анимация включена",
+      "title_en": "Animation enabled",
+      "type": "bool",
+      "default": true,
+      "description": "Команда .anim off / on.",
+      "description_en": "Same as .anim off / on."
+    },
+    {
+      "key": "style",
+      "title": "Стиль по умолчанию",
+      "title_en": "Default style",
+      "type": "select",
+      "default": "typewriter",
+      "description": "Применяется, когда стиль не указан.",
+      "description_en": "Used when the command has no style.",
+      "options": [
+        {
+          "value": "typewriter",
+          "title": "печатная машинка",
+          "title_en": "typewriter"
+        },
+        {
+          "value": "words",
+          "title": "по словам",
+          "title_en": "word by word"
+        },
+        {
+          "value": "lines",
+          "title": "по строкам",
+          "title_en": "line by line"
+        },
+        {
+          "value": "random",
+          "title": "символы появляются в случайном порядке",
+          "title_en": "characters appear in random order"
+        },
+        {
+          "value": "reverse",
+          "title": "обратный",
+          "title_en": "reverse"
+        },
+        {
+          "value": "decrypt",
+          "title": "дешифровка",
+          "title_en": "decryption"
+        },
+        {
+          "value": "matrix",
+          "title": "матричный дождь",
+          "title_en": "matrix rain"
+        },
+        {
+          "value": "wave",
+          "title": "бегущая волна регистра и подчёркивания",
+          "title_en": "running wave of case and underline"
+        },
+        {
+          "value": "glitch",
+          "title": "глитч",
+          "title_en": "glitch"
+        },
+        {
+          "value": "blink",
+          "title": "печать с мигающим курсором",
+          "title_en": "typing with a blinking cursor"
+        },
+        {
+          "value": "grow",
+          "title": "нарастание ░▒▓█",
+          "title_en": "fade-in ░▒▓█"
+        },
+        {
+          "value": "handwriting",
+          "title": "«рукописный» вывод с разными паузами",
+          "title_en": "handwriting with uneven pauses"
+        },
+        {
+          "value": "slot",
+          "title": "слот-машина",
+          "title_en": "slot machine"
+        }
+      ]
+    },
+    {
+      "key": "speed",
+      "title": "Скорость, правок в секунду",
+      "title_en": "Speed, edits per second",
+      "type": "float",
+      "default": 2,
+      "description": "Telegram ограничивает частоту правок; при FloodWait скрипт замедляется сам.",
+      "description_en": "Telegram limits edit frequency; the script slows down by itself on FloodWait.",
+      "min": 0.2,
+      "max": 30
+    },
+    {
+      "key": "turbo",
+      "title": "Максимальная скорость",
+      "title_en": "Max speed mode",
+      "type": "bool",
+      "default": false,
+      "description": "Несколько символов за правку и адаптивная задержка.",
+      "description_en": "Several characters per edit and adaptive delay."
+    },
+    {
+      "key": "cursor",
+      "title": "Курсор",
+      "title_en": "Cursor",
+      "type": "string",
+      "default": "▌",
+      "description": "Символ(ы) курсора; пусто — без курсора.",
+      "description_en": "Cursor character(s); empty for none."
+    },
+    {
+      "key": "mask",
+      "title": "Набор маски",
+      "title_en": "Mask characters",
+      "type": "string",
+      "default": "",
+      "description": "Произвольная строка символов для масок и глитча; пусто — по стилю.",
+      "description_en": "Any string of characters for masks and glitch; empty uses the style default."
+    },
+    {
+      "key": "max_frames",
+      "title": "Максимум кадров",
+      "title_en": "Max frames",
+      "type": "int",
+      "default": 80,
+      "description": "Длинные тексты прореживаются до этого числа правок.",
+      "description_en": "Long texts are thinned out to this many edits.",
+      "min": 2,
+      "max": 400
+    },
+    {
+      "key": "preserve_format",
+      "title": "Сохранять форматирование",
+      "title_en": "Keep formatting",
+      "type": "bool",
+      "default": true,
+      "description": "Итоговое сообщение получает исходную разметку.",
+      "description_en": "The final message gets the original markup."
+    },
+    {
+      "key": "flood_max_wait",
+      "title": "Макс. ожидание FloodWait, с",
+      "title_en": "Max FloodWait, s",
+      "type": "int",
+      "default": 30,
+      "description": "Если Telegram просит ждать дольше, анимация обрывается, итоговый текст всё равно ставится.",
+      "description_en": "If Telegram asks to wait longer, the animation stops; the final text is still set.",
+      "min": 1,
+      "max": 600
+    }
+  ]
+}

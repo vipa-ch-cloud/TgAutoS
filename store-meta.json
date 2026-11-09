@@ -6,5 +6,9 @@
   "autoresponder": {
     "official": true,
     "verified": true
+  },
+  "animatedsending": {
+    "official": false,
+    "verified": true
   }
 }

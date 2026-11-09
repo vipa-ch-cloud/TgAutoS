@@ -1,0 +1,27 @@
+{
+  "id": "animatedsending",
+  "name": "animatedsending",
+  "version": "1.0.0",
+  "build": 1,
+  "author": "Claude (идея и первая реализация — сообщество / community idea & first implementation)",
+  "entry": "animatedsending.py",
+  "description_en": "Community script: animates your own messages by editing them (typewriter, decrypt, matrix rain, glitch, slot machine and more). No AI, no external backend.",
+  "description_ru": "Скрипт сообщества: анимирует ваши сообщения правками (печатная машинка, дешифровка, матричный дождь, глитч, слот-машина и другие). Без ИИ и внешнего бэкенда.",
+  "tags": ["community", "animation", "telegram"],
+  "permissions": {
+    "telegram": ["read your own outgoing messages", "edit your own messages"],
+    "network": [],
+    "llm": false,
+    "subprocess": [],
+    "files": "config dir only (api.json, proxy.json, animatedsending.json)"
+  },
+  "changelog_en": "First release: 13 effects (typewriter, words, lines, random, reverse, decrypt, matrix, wave, glitch, blink, grow, handwriting, slot), custom cursor/mask/look-alike table, turbo mode with batching and adaptive delay, FloodWait handling, formatting kept in the final message. Commands: .a / .anim, .anim list|set|on|off|status.",
+  "changelog_ru": "Первый выпуск: 13 эффектов (печатная машинка, слова, строки, случайный порядок, обратный, дешифровка, матрица, волна, глитч, курсор, нарастание, рукопись, слот), свой курсор/маска/таблица похожих символов, режим максимальной скорости с батчингом и адаптивной задержкой, обработка FloodWait, форматирование сохраняется в итоговом сообщении. Команды: .a / .anim, .anim list|set|on|off|status.",
+  "title_ru": "Анимированная отправка",
+  "title_en": "Animated Sending",
+  "icon": "star",
+  "color": "#8A4FD0",
+  "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
+  "published": "2026-11-09",
+  "homepage": "https://github.com/vipa-ch-cloud/TgAutoS"
+}

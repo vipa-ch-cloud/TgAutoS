@@ -2,6 +2,44 @@
  "format": "tgastore/1",
  "scripts": [
   {
+   "author": "Claude (идея и первая реализация — сообщество / community idea & first implementation)",
+   "changelog_en": "First release: 13 effects (typewriter, words, lines, random, reverse, decrypt, matrix, wave, glitch, blink, grow, handwriting, slot), custom cursor/mask/look-alike table, turbo mode with batching and adaptive delay, FloodWait handling, formatting kept in the final message. Commands: .a / .anim, .anim list|set|on|off|status.",
+   "changelog_ru": "Первый выпуск: 13 эффектов (печатная машинка, слова, строки, случайный порядок, обратный, дешифровка, матрица, волна, глитч, курсор, нарастание, рукопись, слот), свой курсор/маска/таблица похожих символов, режим максимальной скорости с батчингом и адаптивной задержкой, обработка FloodWait, форматирование сохраняется в итоговом сообщении. Команды: .a / .anim, .anim list|set|on|off|status.",
+   "color": "#8A4FD0",
+   "description_en": "Community script: animates your own messages by editing them (typewriter, decrypt, matrix rain, glitch, slot machine and more). No AI, no external backend.",
+   "description_ru": "Скрипт сообщества: анимирует ваши сообщения правками (печатная машинка, дешифровка, матричный дождь, глитч, слот-машина и другие). Без ИИ и внешнего бэкенда.",
+   "homepage": "https://github.com/vipa-ch-cloud/TgAutoS",
+   "icon": "star",
+   "id": "animatedsending",
+   "name": "animatedsending",
+   "official": false,
+   "permissions": {
+    "files": "config dir only (api.json, proxy.json, animatedsending.json)",
+    "llm": false,
+    "network": [],
+    "subprocess": [],
+    "telegram": [
+     "read your own outgoing messages",
+     "edit your own messages"
+    ]
+   },
+   "published": "2026-11-09",
+   "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
+   "sha256": "6af6694515fe3abbbf0be5eb41787f6c312a10f6ee5f9769252f3c4bb8b91ad8",
+   "signed": true,
+   "size": 19355,
+   "tags": [
+    "community",
+    "animation",
+    "telegram"
+   ],
+   "title_en": "Animated Sending",
+   "title_ru": "Анимированная отправка",
+   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/animatedsending-1.0.0.tgascript",
+   "verified": true,
+   "version": "1.0.0"
+  },
+  {
    "author": "vipa-ch-cloud",
    "changelog_en": "New owner commands: .amign (reply to a message) ignores its author in all chats, .amunign removes the ignore, .amignlist shows the list.",
    "changelog_ru": "Новые команды владельца: .amign (ответом на сообщение) игнорирует его автора во всех чатах, .amunign снимает игнор, .amignlist показывает список.",
@@ -96,5 +134,5 @@
    "version": "1.2.0"
   }
  ],
- "updated": "2026-11-07T20:38:49Z"
+ "updated": "2026-11-09T19:24:56Z"
 }
