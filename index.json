@@ -3,8 +3,8 @@
  "scripts": [
   {
    "author": "Claude (идея и первая реализация — сообщество / community idea & first implementation)",
-   "changelog_en": "First release: 13 effects (typewriter, words, lines, random, reverse, decrypt, matrix, wave, glitch, blink, grow, handwriting, slot), custom cursor/mask/look-alike table, turbo mode with batching and adaptive delay, FloodWait handling, formatting kept in the final message. Commands: .a / .anim, .anim list|set|on|off|status.",
-   "changelog_ru": "Первый выпуск: 13 эффектов (печатная машинка, слова, строки, случайный порядок, обратный, дешифровка, матрица, волна, глитч, курсор, нарастание, рукопись, слот), свой курсор/маска/таблица похожих символов, режим максимальной скорости с батчингом и адаптивной задержкой, обработка FloodWait, форматирование сохраняется в итоговом сообщении. Команды: .a / .anim, .anim list|set|on|off|status.",
+   "changelog_en": "Fix: messages were not edited when the chat could not be resolved from a bare chat id (the edit now uses the input peer delivered with the update). Errors are no longer silent: every failed edit is logged to the app journal and the script sends you a short message in Saved Messages. Extra logging of received commands.",
+   "changelog_ru": "Исправление: сообщения не редактировались, когда чат не находился по голому chat_id (теперь правка идёт через input peer из самого обновления). Ошибки больше не молчат: каждая неудачная правка пишется в журнал приложения, а скрипт присылает вам короткое сообщение в «Избранное». Добавлен лог принятых команд.",
    "color": "#8A4FD0",
    "description_en": "Community script: animates your own messages by editing them (typewriter, decrypt, matrix rain, glitch, slot machine and more). No AI, no external backend.",
    "description_ru": "Скрипт сообщества: анимирует ваши сообщения правками (печатная машинка, дешифровка, матричный дождь, глитч, слот-машина и другие). Без ИИ и внешнего бэкенда.",
@@ -23,11 +23,11 @@
      "edit your own messages"
     ]
    },
-   "published": "2026-11-09",
+   "published": "2026-11-16",
    "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
-   "sha256": "6af6694515fe3abbbf0be5eb41787f6c312a10f6ee5f9769252f3c4bb8b91ad8",
+   "sha256": "bab751a31f6da525f864444cd0a92b2e269d77687d327e7a2f760e17ed4898a8",
    "signed": true,
-   "size": 19355,
+   "size": 20188,
    "tags": [
     "community",
     "animation",
@@ -35,14 +35,14 @@
    ],
    "title_en": "Animated Sending",
    "title_ru": "Анимированная отправка",
-   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/animatedsending-1.0.0.tgascript",
-   "verified": true,
-   "version": "1.0.0"
+   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/animatedsending-1.0.1.tgascript",
+   "verified": false,
+   "version": "1.0.1"
   },
   {
    "author": "vipa-ch-cloud",
-   "changelog_en": "New owner commands: .amign (reply to a message) ignores its author in all chats, .amunign removes the ignore, .amignlist shows the list.",
-   "changelog_ru": "Новые команды владельца: .amign (ответом на сообщение) игнорирует его автора во всех чатах, .amunign снимает игнор, .amignlist показывает список.",
+   "changelog_en": "Ads sent by a bot account are only deleted, with no punishment (setting bot_ads_delete_only, on by default).",
+   "changelog_ru": "Реклама от бота теперь только удаляется, без наказания (настройка bot_ads_delete_only, по умолчанию включена).",
    "color": "#3F7D2A",
    "description_en": "Keeps Telegram groups tidy: an LLM reads messages against the chat rules and asks Iris to punish offenders.",
    "description_ru": "Следит за порядком в группах Telegram: LLM читает сообщения по правилам чата и просит Ирис наказать нарушителей.",
@@ -74,9 +74,9 @@
    },
    "published": "2026-11-07",
    "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
-   "sha256": "5f46c2cd87fcb3fb29a2cb9cccb7a1d751877e05090727297ff87d5dfd65ed5f",
+   "sha256": "e779ac45c03afe2c4645b8dd845e6670bea4ea5780f76f4341f8cccc196779dc",
    "signed": true,
-   "size": 43053,
+   "size": 43475,
    "tags": [
     "moderation",
     "llm",
@@ -84,9 +84,9 @@
    ],
    "title_en": "Auto Moderator",
    "title_ru": "Автомодератор",
-   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/automod-1.1.2.tgascript",
+   "url": "https://raw.githubusercontent.com/vipa-ch-cloud/TgAutoS/main/packages/automod-1.1.3.tgascript",
    "verified": true,
-   "version": "1.1.2"
+   "version": "1.1.3"
   },
   {
    "author": "vipa-ch-cloud",
@@ -119,9 +119,9 @@
    },
    "published": "2026-11-07",
    "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
-   "sha256": "2717484dbc0dddde22f898019469aaf4a5488410425e856d5a10a7569f44f185",
+   "sha256": "700e3f00aaa70799e92b4e5f1cd093b1b70edc901e08590aa61d4ed46cadd783",
    "signed": true,
-   "size": 33774,
+   "size": 33776,
    "tags": [
     "autoreply",
     "llm",
@@ -134,5 +134,5 @@
    "version": "1.2.0"
   }
  ],
- "updated": "2026-11-09T19:24:56Z"
+ "updated": "2026-11-16T21:55:02Z"
 }
