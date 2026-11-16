@@ -545,6 +545,7 @@ def save_settings(s, path=None):
 
 # ---------------------------------------------------------------- command parsing
 
+COMMAND_PATTERN = r"(?is)^\s*\.(?:anim|a)(?:\s|$)"
 COMMAND_RE = re.compile(r"^\s*\.(?:anim|a)(?=\s|$)(.*)$", re.S | re.I)
 
 
@@ -683,12 +684,13 @@ class Pacer:
 
 # ---------------------------------------------------------------- runtime
 
-async def _edit(client, msg, text, entities, pacer, settings, final=False):
-    """One edit with FloodWait handling. Returns "ok" / "skip" (not modified) / "stop"."""
+async def _edit(client, peer, msg, text, entities, pacer, settings, final=False):
+    """One edit with FloodWait handling. Returns "ok" / "skip" (not modified) / "stop".
+    Every failure is logged and remembered in pacer.error (never swallowed silently)."""
     for attempt in range(4):
         try:
             started = time.monotonic()
-            await client.edit_message(msg.chat_id, msg.id, text, parse_mode=None,
+            await client.edit_message(peer, msg.id, text, parse_mode=None,
                                       formatting_entities=entities or None, link_preview=False)
             pacer.on_ok(time.monotonic() - started)
             return "ok"
@@ -696,24 +698,35 @@ async def _edit(client, msg, text, entities, pacer, settings, final=False):
             return "skip"
         except errors.FloodWaitError as e:
             pacer.on_flood(e.seconds)
+            log.warning("FloodWait %s s while editing message %s", e.seconds, msg.id)
             if e.seconds > settings["flood_max_wait"] and not final:
+                pacer.error = f"FloodWait {e.seconds} с"
                 return "stop"
             await asyncio.sleep(min(e.seconds, 600) + 0.5)
         except (errors.MessageIdInvalidError, errors.MessageAuthorRequiredError,
                 errors.MessageEditTimeExpiredError, errors.ChatAdminRequiredError,
-                errors.MessageEmptyError, errors.MessageTooLongError):
+                errors.MessageEmptyError, errors.MessageTooLongError) as e:
+            pacer.error = f"{type(e).__name__}: {e}"
+            log.error("edit of message %s refused: %s", msg.id, pacer.error)
             return "stop"
         except (errors.RPCError, ConnectionError, asyncio.TimeoutError) as e:
-            log.warning("edit failed: %r", e)
+            pacer.error = f"{type(e).__name__}: {e}"
+            log.warning("edit failed (attempt %d): %r", attempt + 1, e)
             await asyncio.sleep(1 + attempt)
+        except Exception as e:  # e.g. ValueError "Could not find the input entity", TypeError
+            pacer.error = f"{type(e).__name__}: {e}"
+            log.exception("edit of message %s crashed: %r", msg.id, e)
+            return "stop"
     return "stop"
 
 
-async def animate(client, msg, text, style, settings, entities=None):
+async def animate(client, msg, text, style, settings, entities=None, peer=None, errors_out=None):
     """Play the animation on `msg` and always end with the exact final text (+ formatting)."""
     opts = {"seed": settings.get("seed"), "cursor": settings["cursor"], "mask": settings["mask"],
             "homoglyphs": settings["homoglyphs"], "max_frames": settings["max_frames"]}
     pacer = Pacer(settings["speed"], settings["turbo"])
+    pacer.error = None
+    peer = peer if peer is not None else msg.chat_id
     if settings["turbo"]:
         opts["batch"] = 2
         opts["max_frames"] = min(400, settings["max_frames"] * 2)
@@ -723,19 +736,21 @@ async def animate(client, msg, text, style, settings, entities=None):
     final_ent = entities if settings["preserve_format"] else None
     stopped = False
     for frame, weight in tl[:-1]:
-        res = await _edit(client, msg, frame, None, pacer, settings)
+        res = await _edit(client, peer, msg, frame, None, pacer, settings)
         if res == "stop":
             stopped = True
             break
         await asyncio.sleep(pacer.next_delay(weight))
     # the final edit is always attempted (also after an abort, if the message still exists)
     for _ in range(3):
-        res = await _edit(client, msg, text, final_ent, pacer, settings, final=True)
+        res = await _edit(client, peer, msg, text, final_ent, pacer, settings, final=True)
         if res != "stop":
             return True
         if stopped:
             await asyncio.sleep(2)
-    log.error("could not set the final text of message %s", msg.id)
+    log.error("could not set the final text of message %s: %s", msg.id, pacer.error)
+    if errors_out is not None:
+        errors_out.append(pacer.error or "неизвестная ошибка")
     return False
 
 
@@ -749,11 +764,33 @@ class AnimatedSending:
     def settings(self):
         return load_settings(self.path)
 
-    async def reply(self, msg, text):
+    async def peer_of(self, event, msg):
+        """Input peer of the chat. Prefer the one that came with the update (it carries the
+        access hash); a bare chat_id is not resolvable for a chat missing from the session cache."""
         try:
-            await self.client.edit_message(msg.chat_id, msg.id, text, parse_mode=None)
+            peer = await event.get_input_chat()
+            if peer is not None:
+                return peer
+        except Exception as e:
+            log.warning("cannot resolve the chat from the update: %r", e)
+        return msg.chat_id
+
+    async def notify(self, text):
+        """Tell the owner (Saved Messages) that something failed; never raises."""
+        try:
+            await self.client.send_message("me", "AnimatedSending: " + text)
+        except Exception as e:
+            log.error("cannot notify the owner: %r", e)
+
+    async def reply(self, msg, text, peer=None):
+        try:
+            await self.client.edit_message(peer if peer is not None else msg.chat_id, msg.id,
+                                           text, parse_mode=None)
         except errors.MessageNotModifiedError:
             pass
+        except Exception as e:
+            log.error("cannot edit the command message %s: %r", msg.id, e)
+            await self.notify(f"не удалось изменить сообщение ({type(e).__name__}: {e})")
 
     async def on_message(self, event):
         msg = event.message
@@ -763,44 +800,58 @@ class AnimatedSending:
         cmd = parse_command(msg.raw_text or "", s["style"])
         if cmd is None:
             return
+        log.info("command %s in chat %s, message %s", cmd.get("style") or cmd.get("name"),
+                 msg.chat_id, msg.id)
+        peer = await self.peer_of(event, msg)
         if cmd["kind"] == "sub":
-            await self.subcommand(msg, cmd, s)
+            try:
+                await self.subcommand(msg, cmd, s, peer)
+            except Exception as e:
+                log.exception("subcommand failed")
+                await self.notify(f"ошибка команды ({type(e).__name__}: {e})")
             return
         if not s["enabled"]:
+            log.info("animation is off (.anim on to enable), message left as is")
             return
         text = cmd["text"]
         if not text.strip():
             return
         if len(text) > MAX_LEN:
-            await self.reply(msg, "Текст длиннее 4096 символов, анимация пропущена: " + text[:200])
+            await self.reply(msg, "Текст длиннее 4096 символов, анимация пропущена: " + text[:200], peer)
             return
         ents = None
         if s["preserve_format"] and msg.entities:
             raw = msg.raw_text
             ents = shift_entities(msg.entities, utf16_len(raw[:cmd["cut"]]), utf16_len(text)) or None
         async with self.sem:
+            failed = []
             try:
-                await animate(self.client, msg, text, cmd["style"], s, ents)
-            except Exception:  # never crash the handler
+                ok = await animate(self.client, msg, text, cmd["style"], s, ents, peer, failed)
+                if not ok and not failed:
+                    failed.append("пустая анимация")
+            except Exception as e:  # never crash the handler
                 log.exception("animation failed")
+                failed.append(f"{type(e).__name__}: {e}")
+            if failed:
+                await self.notify("не удалось отредактировать сообщение: " + failed[-1])
 
-    async def subcommand(self, msg, cmd, s):
+    async def subcommand(self, msg, cmd, s, peer=None):
         name, args = cmd["name"], cmd["args"]
         if name == "list":
-            await self.reply(msg, render_list("ru"))
+            await self.reply(msg, render_list("ru"), peer)
         elif name == "status":
-            await self.reply(msg, render_status(s))
+            await self.reply(msg, render_status(s), peer)
         elif name in ("on", "off"):
             s["enabled"] = name == "on"
             save_settings(s, self.path)
-            await self.reply(msg, "AnimatedSending " + ("включено" if s["enabled"] else "выключено"))
+            await self.reply(msg, "AnimatedSending " + ("включено" if s["enabled"] else "выключено"), peer)
         elif name == "set":
             new, answer = apply_set(s, args)
             if new is not s and new != s:
                 save_settings(clean_settings(new), self.path)
-            await self.reply(msg, answer)
+            await self.reply(msg, answer, peer)
         else:
-            await self.reply(msg, HELP_RU)
+            await self.reply(msg, HELP_RU, peer)
 
 
 # ---------------------------------------------------------------- Telegram plumbing
@@ -899,8 +950,9 @@ async def run():
     me = await client.get_me()
     bot = AnimatedSending(client, me.id)
     client.add_event_handler(bot.on_message, events.NewMessage(
-        outgoing=True, pattern=r"(?is)^\s*\.(?:anim|a)(?:\s|$)"))
-    log.info("running as %s, style %s", me.id, bot.settings()["style"])
+        outgoing=True, pattern=COMMAND_PATTERN))
+    log.info("running as %s, style %s; listening for your outgoing .a / .anim messages",
+             me.id, bot.settings()["style"])
     await client.run_until_disconnected()
 
 

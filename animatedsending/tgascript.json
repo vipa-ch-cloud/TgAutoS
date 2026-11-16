@@ -1,27 +1,34 @@
 {
   "id": "animatedsending",
   "name": "animatedsending",
-  "version": "1.0.0",
-  "build": 1,
+  "version": "1.0.1",
+  "build": 2,
   "author": "Claude (идея и первая реализация — сообщество / community idea & first implementation)",
   "entry": "animatedsending.py",
   "description_en": "Community script: animates your own messages by editing them (typewriter, decrypt, matrix rain, glitch, slot machine and more). No AI, no external backend.",
   "description_ru": "Скрипт сообщества: анимирует ваши сообщения правками (печатная машинка, дешифровка, матричный дождь, глитч, слот-машина и другие). Без ИИ и внешнего бэкенда.",
-  "tags": ["community", "animation", "telegram"],
+  "tags": [
+    "community",
+    "animation",
+    "telegram"
+  ],
   "permissions": {
-    "telegram": ["read your own outgoing messages", "edit your own messages"],
+    "telegram": [
+      "read your own outgoing messages",
+      "edit your own messages"
+    ],
     "network": [],
     "llm": false,
     "subprocess": [],
     "files": "config dir only (api.json, proxy.json, animatedsending.json)"
   },
-  "changelog_en": "First release: 13 effects (typewriter, words, lines, random, reverse, decrypt, matrix, wave, glitch, blink, grow, handwriting, slot), custom cursor/mask/look-alike table, turbo mode with batching and adaptive delay, FloodWait handling, formatting kept in the final message. Commands: .a / .anim, .anim list|set|on|off|status.",
-  "changelog_ru": "Первый выпуск: 13 эффектов (печатная машинка, слова, строки, случайный порядок, обратный, дешифровка, матрица, волна, глитч, курсор, нарастание, рукопись, слот), свой курсор/маска/таблица похожих символов, режим максимальной скорости с батчингом и адаптивной задержкой, обработка FloodWait, форматирование сохраняется в итоговом сообщении. Команды: .a / .anim, .anim list|set|on|off|status.",
+  "changelog_en": "Fix: messages were not edited when the chat could not be resolved from a bare chat id (the edit now uses the input peer delivered with the update). Errors are no longer silent: every failed edit is logged to the app journal and the script sends you a short message in Saved Messages. Extra logging of received commands.",
+  "changelog_ru": "Исправление: сообщения не редактировались, когда чат не находился по голому chat_id (теперь правка идёт через input peer из самого обновления). Ошибки больше не молчат: каждая неудачная правка пишется в журнал приложения, а скрипт присылает вам короткое сообщение в «Избранное». Добавлен лог принятых команд.",
   "title_ru": "Анимированная отправка",
   "title_en": "Animated Sending",
   "icon": "star",
   "color": "#8A4FD0",
   "repo": "https://github.com/vipa-ch-cloud/TgAutoS",
-  "published": "2026-11-09",
+  "published": "2026-11-16",
   "homepage": "https://github.com/vipa-ch-cloud/TgAutoS"
 }

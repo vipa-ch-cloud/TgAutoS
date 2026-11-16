@@ -249,6 +249,68 @@ class Runtime(unittest.TestCase):
         self.assertEqual(c.calls[-1][0], "Hello world")
 
 
+class EventPath(unittest.TestCase):
+    """Full path: Telethon NewMessage filter -> on_message -> edit_message (regression 1.0.1:
+    a bare chat_id is not resolvable by a real client, and failures were silent)."""
+
+    class Client:
+        def __init__(self, resolvable=()):
+            self.edits, self.sent, self.resolvable = [], [], resolvable
+
+        async def edit_message(self, peer, mid, text, **kw):
+            if isinstance(peer, int):  # real Telethon: unknown chat_id -> ValueError
+                raise ValueError("Could not find the input entity for PeerUser(user_id=%d)" % peer)
+            self.edits.append((peer, mid, text))
+
+        async def send_message(self, to, text, **kw):
+            self.sent.append((to, text))
+
+    @staticmethod
+    def make_event(text, input_chat="INPUT_PEER"):
+        msg = SimpleNamespace(out=True, fwd_from=None, via_bot_id=None, raw_text=text, entities=None,
+                              chat_id=77, id=9)
+
+        async def get_input_chat():
+            return input_chat
+
+        return SimpleNamespace(message=msg, get_input_chat=get_input_chat)
+
+    def run_event(self, client, text, **kw):
+        A_fast = {"speed": 30, "seed": 1}
+        path = Path(TMP) / "evpath.json"
+        A.save_settings(A.clean_settings({**A.DEFAULTS, **A_fast}), path)
+        bot = A.AnimatedSending(client, 1, path)
+        asyncio.run(bot.on_message(self.make_event(text, **kw)))
+
+    @unittest.skipIf(A.events is None, "telethon not installed")
+    def test_handler_pattern_matches_commands(self):
+        import datetime
+        from telethon import types as T
+        from telethon.tl.custom import Message
+        builder = A.events.NewMessage(outgoing=True, pattern=A.COMMAND_PATTERN)
+        builder.resolved = True
+        for text in (".a привет", ".anim hi", ".A HI", ".a\nline2", " .a x"):
+            m = Message(id=1, peer_id=T.PeerUser(1), out=True, message=text, date=datetime.datetime.now())
+            self.assertTrue(builder.filter(A.events.NewMessage.Event(m)), text)
+
+    def test_edit_uses_input_peer_from_update(self):
+        c = self.Client()
+        self.run_event(c, ".a hello")
+        self.assertTrue(c.edits)
+        self.assertTrue(all(peer == "INPUT_PEER" for peer, _, _ in c.edits))
+        self.assertEqual(c.edits[-1][2], "hello")
+        self.assertEqual(c.sent, [])
+
+    def test_failure_is_logged_and_owner_notified(self):
+        c = self.Client()
+        with self.assertLogs("animatedsending", level="ERROR") as cm:
+            self.run_event(c, ".a hello", input_chat=None)  # falls back to bare chat_id -> ValueError
+        self.assertTrue(any("crashed" in line or "could not set" in line for line in cm.output))
+        self.assertEqual(len(c.sent), 1)
+        self.assertEqual(c.sent[0][0], "me")
+        self.assertIn("ValueError", c.sent[0][1])
+
+
 class Pacer(unittest.TestCase):
     def test_flood_slows(self):
         p = A.Pacer(10, True)
