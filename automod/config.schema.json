@@ -91,6 +91,15 @@
       "description_en": "Requires the right to delete messages."
     },
     {
+      "key": "bot_ads_delete_only",
+      "title": "Рекламу от ботов только удалять",
+      "title_en": "Only delete ads sent by bots",
+      "type": "bool",
+      "default": true,
+      "description": "Если рекламу прислал бот, сообщение удаляется без наказания.",
+      "description_en": "If a bot sent the ad, the message is deleted without punishment."
+    },
+    {
       "key": "ad_whitelist",
       "title": "Разрешённые боты",
       "title_en": "Allowed bots",

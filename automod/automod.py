@@ -112,6 +112,8 @@ DEFAULTS = {
     "owner_ids": [],  # extra accounts that may run commands and are never punished
     # Immediate deletion of bot advertising (needs the delete_messages admin right).
     "delete_bot_ads": True,
+    # Ads sent by a bot account (sender.bot) are only deleted, never punished.
+    "bot_ads_delete_only": True,
     # Deterministic ad pre-filter (works with the model, not instead of it).
     "ad_prefilter": True,
     # Extra regexes: a match alone marks the message as an ad (channel/bot names, phrases).
@@ -1896,7 +1898,11 @@ class Automod:
                  "user_id": user_id, "username": username, "reason": reason,
                  "text": (features["text"] or "")[:200],
                  "dry_run": bool(self.settings["dry_run"])}
-        violation = (None if features["sender_is_bot"]
+        sender_bot = features["sender_is_bot"]
+        if not sender_bot and sender is None and user_id > 0:
+            sender_bot = await self.lookup_is_bot(user_id)
+        spared = sender_bot and self.settings.get("bot_ads_delete_only", True)
+        violation = (None if spared
                      else self.ad_violation(chat, user_id, username, reason))
         if violation:
             skip = await self.already_punished(chat_id, message.id, user_id, violation["rule"])
@@ -1938,6 +1944,14 @@ class Automod:
             chat["actions"] = chat.get("actions", 0) + 1
             self.record_punishment(chat_id, user_id, violation["rule"])
         return True
+
+    async def lookup_is_bot(self, user_id):
+        """sender.bot of a user whose sender was not delivered; False when unknown."""
+        try:
+            entity = await self.client.get_entity(user_id)
+        except Exception:
+            return False
+        return getattr(entity, "bot", False) is True
 
     def ad_violation(self, chat, user_id, username, reason):
         """The rule's punishment for an ad, or None (rules silent, bot, cooldown)."""

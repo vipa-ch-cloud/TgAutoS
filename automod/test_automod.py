@@ -632,6 +632,47 @@ class AdFlow(unittest.TestCase):
         self.send(bot, "Купи!", bot=True, username="adv_bot")
         self.assertEqual(bot.client.calls, [("delete", [77])])
 
+    def test_bot_ad_delete_only_no_punishment_state(self):
+        bot = self.make_bot()
+        self.send(bot, "Переходи в бота @free_money_bot", bot=True, username="adv_bot", user_id=600)
+        self.assertEqual(bot.client.calls, [("delete", [77])])
+        chat = bot.state.chat(-1001)
+        self.assertFalse(chat.get("actions"))
+        self.assertFalse(chat.get("ad_punished"))
+
+    def test_user_ad_still_punished(self):
+        bot = self.make_bot()
+        self.send(bot, "Переходи в бота @free_money_bot", username="spammer")
+        self.assertEqual(bot.client.calls, [("send", "!мут 1 сутки\nautomod 1", 77),
+                                            ("delete", [77])])
+
+    def test_bot_ad_setting_off_punishes_bot(self):
+        bot = self.make_bot(bot_ads_delete_only=False)
+        self.send(bot, "Переходи в бота @free_money_bot", bot=True, username="adv_bot")
+        self.assertEqual(bot.client.calls, [("send", "!мут 1 сутки\nautomod 1", 77),
+                                            ("delete", [77])])
+
+    def test_unknown_sender_treated_as_user(self):
+        bot = self.make_bot()
+        event = fake_event(-1001, 77, 500, "Переходи в бота @free_money_bot")
+        event.get_sender = mock.AsyncMock(return_value=None)
+        asyncio.run(bot.on_message(event))  # FakeClient has no get_entity: unknown -> user
+        self.assertEqual([c[0] for c in bot.client.calls], ["send", "delete"])
+
+    def test_unknown_sender_resolved_as_bot(self):
+        bot = self.make_bot()
+        bot.client.get_entity = mock.AsyncMock(return_value=SimpleNamespace(bot=True))
+        event = fake_event(-1001, 77, 500, "Переходи в бота @free_money_bot")
+        event.get_sender = mock.AsyncMock(return_value=None)
+        asyncio.run(bot.on_message(event))
+        self.assertEqual(bot.client.calls, [("delete", [77])])
+
+    def test_ignored_bot_untouched(self):
+        bot = self.make_bot()
+        bot.state.ignore(600)
+        self.send(bot, "Переходи в бота @free_money_bot", bot=True, user_id=600)
+        self.assertEqual(bot.client.calls, [])
+
     def test_admin_and_owner_protected(self):
         bot = self.make_bot(admins={500})
         self.send(bot, "@free_money_bot")
